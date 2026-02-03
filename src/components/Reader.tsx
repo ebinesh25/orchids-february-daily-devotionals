@@ -13,6 +13,7 @@ import {
 import { Type, Languages, Moon, Sun, ChevronLeft, ChevronRight } from "lucide-react";
 import { useTheme } from "next-themes";
 import Link from "next/link";
+import { OnboardingTour } from "@/components/OnboardingTour";
 
 interface ReaderProps {
   devotional: Devotional;
@@ -36,6 +37,7 @@ export default function Reader({ devotional, month }: ReaderProps) {
 
   return (
     <div className="min-h-screen bg-background text-foreground transition-colors duration-300">
+      <OnboardingTour />
       {/* Sticky Header */}
       <header className="sticky top-0 z-50 w-full border-b bg-background/80 backdrop-blur-md">
         <div className="container mx-auto flex h-16 max-w-2xl items-center justify-between px-4">
@@ -46,6 +48,7 @@ export default function Reader({ devotional, month }: ReaderProps) {
           <div className="flex items-center gap-2">
             {/* Language Switcher */}
             <Button
+              id="language-button"
               variant="ghost"
               size="icon"
               onClick={() => setLanguage(language === "english" ? "tamil" : "english")}
@@ -57,7 +60,7 @@ export default function Reader({ devotional, month }: ReaderProps) {
             {/* Font Size Selector */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon">
+                <Button id="font-button" variant="ghost" size="icon">
                   <Type className="h-5 w-5" />
                 </Button>
               </DropdownMenuTrigger>
@@ -76,6 +79,7 @@ export default function Reader({ devotional, month }: ReaderProps) {
 
             {/* Theme Toggle */}
             <Button
+              id="theme-button"
               variant="ghost"
               size="icon"
               onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
