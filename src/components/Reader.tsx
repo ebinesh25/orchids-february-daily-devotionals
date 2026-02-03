@@ -33,7 +33,13 @@ export default function Reader({ devotional, month }: ReaderProps) {
   const [fontSize, setFontSize] = useState("text-lg");
   const { theme, setTheme } = useTheme();
 
-  const content = language === "english" ? devotional.english : devotional.tamil;
+  // Clean up excessive newlines (more than 2 consecutive newlines)
+  const cleanContent = (text: string) => {
+    return text.replace(/\n{3,}/g, '\n\n');
+  };
+
+  const rawContent = language === "english" ? devotional.english : devotional.tamil;
+  const content = cleanContent(rawContent);
 
   return (
     <div className="min-h-screen bg-background text-foreground transition-colors duration-300">
