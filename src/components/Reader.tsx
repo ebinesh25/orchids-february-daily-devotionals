@@ -18,6 +18,7 @@ import { OnboardingTour } from "@/components/OnboardingTour";
 interface ReaderProps {
   devotional: Devotional;
   month: string;
+  day: number;
 }
 
 const fontSizes = [
@@ -28,7 +29,7 @@ const fontSizes = [
   { label: "Maximum", value: "text-2xl" },
 ];
 
-export default function Reader({ devotional, month }: ReaderProps) {
+export default function Reader({ devotional, month, day }: ReaderProps) {
   const [language, setLanguage] = useState<"english" | "tamil">("english");
   const [fontSize, setFontSize] = useState("text-lg");
   const { theme, setTheme } = useTheme();
@@ -38,8 +39,9 @@ export default function Reader({ devotional, month }: ReaderProps) {
     return text.replace(/\n{3,}/g, '\n\n');
   };
 
-  const rawContent = language === "english" ? devotional.english : devotional.tamil;
-  const content = cleanContent(rawContent);
+  const langData = language === "english" ? devotional.english : devotional.tamil;
+  const title = langData.title;
+  const content = cleanContent(langData.data);
 
   return (
     <div className="min-h-screen bg-background text-foreground transition-colors duration-300">
@@ -100,6 +102,11 @@ export default function Reader({ devotional, month }: ReaderProps) {
 
       {/* Content */}
       <main className="container mx-auto max-w-2xl px-4 py-8 md:py-12">
+        {/* Title */}
+        <h1 className={`font-serif font-bold text-3xl md:text-4xl mb-8 text-primary ${fontSize}`}>
+          {title}
+        </h1>
+
         <article className={`prose prose-slate dark:prose-invert max-w-none font-serif leading-relaxed ${fontSize}`}>
           <div className="whitespace-pre-wrap">
             <ReactMarkdown>
@@ -110,9 +117,9 @@ export default function Reader({ devotional, month }: ReaderProps) {
 
         {/* Navigation Buttons */}
         <div className="mt-12 flex items-center justify-between border-t pt-8">
-          {devotional.day > 1 ? (
+          {day > 1 ? (
             <Button variant="outline" asChild>
-              <Link href={`/${month}/day/${devotional.day - 1}`}>
+              <Link href={`/${month}/day/${day - 1}`}>
                 <ChevronLeft className="mr-2 h-4 w-4" />
                 Previous Day
               </Link>
@@ -120,9 +127,9 @@ export default function Reader({ devotional, month }: ReaderProps) {
           ) : (
             <div />
           )}
-          
+
           <Button variant="outline" asChild>
-            <Link href={`/${month}/day/${devotional.day + 1}`}>
+            <Link href={`/${month}/day/${day + 1}`}>
               Next Day
               <ChevronRight className="ml-2 h-4 w-4" />
             </Link>

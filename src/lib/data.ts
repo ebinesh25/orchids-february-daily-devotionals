@@ -1,14 +1,20 @@
 import fs from 'fs/promises';
 import path from 'path';
 
+export interface DevotionalContent {
+  title: string;
+  data: string;
+}
+
 export interface Devotional {
-  day: number;
-  english: string;
-  tamil: string;
+  english: DevotionalContent;
+  tamil: DevotionalContent;
 }
 
 export interface MonthData {
-  [month: string]: Devotional[];
+  [key: string]: {
+    [key: string]: Devotional;
+  };
 }
 
 export async function getDevotionals(): Promise<MonthData> {
@@ -17,9 +23,26 @@ export async function getDevotionals(): Promise<MonthData> {
   return JSON.parse(jsonData);
 }
 
-export async function getDevotional(month: string, day: number): Promise<Devotional | null> {
+export async function getDevotional(month: string, day: number): Promise<{ devotional: Devotional; dayNum: number } | null> {
   const data = await getDevotionals();
-  const monthDevotionals = data[month.toLowerCase()];
-  if (!monthDevotionals) return null;
-  return monthDevotionals.find((d) => d.day === day) || null;
+  const monthData = data[month.toLowerCase()];
+  if (!monthData) return null;
+
+  const dayKey = `day${day}`;
+  const devotional = monthData[dayKey];
+
+  if (!devotional) return null;
+
+  return { devotional, dayNum: day };
+}
+
+export async function getAllDaysForMonth(month: string): Promise<number[]> {
+  const data = await getDevotionals();
+  const monthData = data[month.toLowerCase()];
+  if (!monthData) return [];
+
+  return Object.keys(monthData)
+    .filter(key => key.startsWith('day'))
+    .map(key => parseInt(key.replace('day', '')))
+    .sort((a, b) => a - b);
 }

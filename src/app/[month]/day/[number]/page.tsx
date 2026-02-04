@@ -17,11 +17,11 @@ export default async function DayPage({ params }: PageProps) {
     notFound();
   }
 
-  const devotional = await getDevotional(month, day);
+  const result = await getDevotional(month, day);
 
-  if (!devotional) {
+  if (!result) {
     notFound();
   }
 
-  return <Reader devotional={devotional} month={month} />;
+  return <Reader devotional={result.devotional} month={month} day={result.dayNum} />;
 }
