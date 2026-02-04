@@ -151,28 +151,53 @@ export function OnboardingTour() {
   const isFirstStep = currentStep === 0;
   const isFontStep = currentStep === 1;
 
+  // Calculate responsive tooltip width
+  const viewportWidth = typeof window !== "undefined" ? window.innerWidth : 400;
+  const padding = 16; // 1rem padding from viewport edge
+  const maxTooltipWidth = 320; // w-80 on desktop
+  const tooltipWidth = Math.min(maxTooltipWidth, viewportWidth - padding * 2);
+
   // Calculate tooltip position based on whether dropdown is open
   let tooltipStyle: React.CSSProperties = {
     position: "fixed",
     zIndex: 99999,
+    width: tooltipWidth,
   };
 
+  // Store the target center position for arrow alignment
+  let targetCenterX = 0;
+
   if (isFontStep && isDropdownOpen) {
-    // Position to the left of the dropdown
+    // Position to the left of the dropdown, but clamp to viewport
     const dropdownPos = dropdownPositionRef.current;
+    let leftPos = dropdownPos.left - tooltipWidth - 20; // tooltip width + gap
+
+    // Clamp to viewport bounds
+    leftPos = Math.max(padding, Math.min(leftPos, viewportWidth - tooltipWidth - padding));
+
+    targetCenterX = dropdownPos.left + dropdownPos.width / 2;
+
     tooltipStyle = {
       ...tooltipStyle,
       top: dropdownPos.top + dropdownPos.height / 2,
-      left: dropdownPos.left - 340, // tooltip width (320) + padding
+      left: leftPos,
       transform: "translateY(-50%)",
     };
   } else {
-    // Default position below the button
+    // Default position below the button, centered
+    // Calculate centered position
+    let leftPos = targetPosition.left + targetPosition.width / 2 - tooltipWidth / 2;
+
+    // Clamp to viewport bounds
+    leftPos = Math.max(padding, Math.min(leftPos, viewportWidth - tooltipWidth - padding));
+
+    targetCenterX = targetPosition.left + targetPosition.width / 2;
+
     tooltipStyle = {
       ...tooltipStyle,
       top: targetPosition.top + targetPosition.height + 12,
-      left: targetPosition.left + targetPosition.width / 2,
-      transform: "translateX(-50%)",
+      left: leftPos,
+      transform: "none", // No transform since we're calculating exact position
     };
   }
 
@@ -219,9 +244,9 @@ export function OnboardingTour() {
       {/* Tooltip */}
       <div
         style={tooltipStyle}
-        className="w-80 animate-in fade-in duration-300"
+        className="animate-in fade-in duration-300"
       >
-        <div className="bg-popover text-popover-foreground rounded-lg border shadow-lg p-4">
+        <div className="bg-popover text-popover-foreground rounded-lg border shadow-lg p-4 relative">
           {/* Header */}
           <div className="flex items-start justify-between mb-2">
             <div>
@@ -300,12 +325,22 @@ export function OnboardingTour() {
             ))}
           </div>
         </div>
-        {/* Arrow */}
+        {/* Arrow - positioned dynamically to align with target */}
         {!isDropdownOpen && (
-          <div className="absolute -top-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-popover border-l border-t transform rotate-45" />
+          <div
+            className="absolute -top-2 w-4 h-4 bg-popover border-l border-t transform rotate-45"
+            style={{
+              left: targetCenterX - tooltipStyle.left as number - 8, // 8 = half of arrow width (16px / 2)
+            }}
+          />
         )}
         {isDropdownOpen && (
-          <div className="absolute top-1/2 -translate-y-1/2 -right-2 w-4 h-4 bg-popover border-t border-r transform rotate-45" />
+          <div
+            className="absolute top-1/2 -translate-y-1/2 w-4 h-4 bg-popover border-t border-r transform rotate-45"
+            style={{
+              left: tooltipWidth, // Position at right edge of tooltip
+            }}
+          />
         )}
       </div>
     </>
