@@ -1,4 +1,4 @@
-import { getDevotional } from "@/lib/data";
+import { getDevotional, getAllDaysForMonth } from "@/lib/data";
 import Reader from "@/components/Reader";
 import { notFound } from "next/navigation";
 
@@ -23,5 +23,7 @@ export default async function DayPage({ params }: PageProps) {
     notFound();
   }
 
-  return <Reader devotional={result.devotional} month={month} day={result.dayNum} />;
+  const days = await getAllDaysForMonth(month);
+
+  return <Reader devotional={result.devotional} month={month} day={result.dayNum} days={days} />;
 }

@@ -10,15 +10,17 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Type, Languages, Moon, Sun, ChevronLeft, ChevronRight } from "lucide-react";
+import { Type, Languages, Moon, Sun } from "lucide-react";
 import { useTheme } from "next-themes";
 import Link from "next/link";
 import { OnboardingTour } from "@/components/OnboardingTour";
+import { DayPicker } from "@/components/DayPicker";
 
 interface ReaderProps {
   devotional: Devotional;
   month: string;
   day: number;
+  days: number[];
 }
 
 const fontSizes = [
@@ -29,17 +31,18 @@ const fontSizes = [
   { label: "Maximum", value: "text-2xl" },
 ];
 
-export default function Reader({ devotional, month, day }: ReaderProps) {
+export default function Reader({ devotional, month, day, days }: ReaderProps) {
   const [language, setLanguage] = useState<"english" | "tamil">("english");
   const [fontSize, setFontSize] = useState("text-lg");
   const { theme, setTheme } = useTheme();
 
   // Clean up excessive newlines (more than 2 consecutive newlines)
   const cleanContent = (text: string) => {
-    return text.replace(/\n{3,}/g, '\n\n');
+    return text.replace(/\n{3,}/g, "\n\n");
   };
 
-  const langData = language === "english" ? devotional.english : devotional.tamil;
+  const langData =
+    language === "english" ? devotional.english : devotional.tamil;
   const title = langData.title;
   const content = cleanContent(langData.data);
 
@@ -49,17 +52,22 @@ export default function Reader({ devotional, month, day }: ReaderProps) {
       {/* Sticky Header */}
       <header className="sticky top-0 z-50 w-full border-b bg-background/80 backdrop-blur-md">
         <div className="container mx-auto flex h-16 max-w-2xl items-center justify-between px-4">
-          <Link href="/" className="font-serif text-xl font-bold tracking-tight text-primary">
+          <Link
+            href="/"
+            className="font-serif text-xl font-bold tracking-tight text-primary"
+          >
             Devotional
           </Link>
-          
+
           <div className="flex items-center gap-2">
             {/* Language Switcher */}
             <Button
               id="language-button"
               variant="ghost"
               size="icon"
-              onClick={() => setLanguage(language === "english" ? "tamil" : "english")}
+              onClick={() =>
+                setLanguage(language === "english" ? "tamil" : "english")
+              }
               title="Switch Language"
             >
               <Languages className="h-5 w-5" />
@@ -103,37 +111,23 @@ export default function Reader({ devotional, month, day }: ReaderProps) {
       {/* Content */}
       <main className="container mx-auto max-w-2xl px-4 py-8 md:py-12">
         {/* Title */}
-        <h1 className={`font-serif font-bold text-3xl md:text-4xl mb-8 text-primary ${fontSize}`}>
+        <h1
+          className={`font-serif font-bold text-3xl md:text-4xl mb-8 text-primary ${fontSize}`}
+        >
           {title}
         </h1>
 
-        <article className={`prose prose-slate dark:prose-invert max-w-none font-serif leading-relaxed ${fontSize}`}>
+        <article
+          className={`prose prose-slate dark:prose-invert max-w-none font-serif leading-relaxed ${fontSize}`}
+        >
           <div className="whitespace-pre-wrap">
-            <ReactMarkdown>
-              {content}
-            </ReactMarkdown>
+            <ReactMarkdown>{content}</ReactMarkdown>
           </div>
         </article>
 
-        {/* Navigation Buttons */}
-        <div className="mt-12 flex items-center justify-between border-t pt-8">
-          {day > 1 ? (
-            <Button variant="outline" asChild>
-              <Link href={`/${month}/day/${day - 1}`}>
-                <ChevronLeft className="mr-2 h-4 w-4" />
-                Previous Day
-              </Link>
-            </Button>
-          ) : (
-            <div />
-          )}
-
-          <Button variant="outline" asChild>
-            <Link href={`/${month}/day/${day + 1}`}>
-              Next Day
-              <ChevronRight className="ml-2 h-4 w-4" />
-            </Link>
-          </Button>
+        {/* Day Picker */}
+        <div className="mt-12 border-t pt-8">
+          <DayPicker month={month} days={days} currentDay={day} />
         </div>
       </main>
 

@@ -1,6 +1,8 @@
 import { getDevotionals } from "@/lib/data";
 import Reader from "@/components/Reader";
 import { redirect } from "next/navigation";
+import { DayPicker } from "@/components/DayPicker";
+import { getAllDaysForMonth } from "@/lib/data";
 
 export default async function TodayPage() {
   const today = new Date();
@@ -11,36 +13,45 @@ export default async function TodayPage() {
   const monthData = data[currentMonth];
 
   if (!monthData) {
-    // If no data for current month, redirect to February as fallback
+    // If no data for current month, check February as fallback
     const febData = data['feb'];
     if (febData) {
+      const days = await getAllDaysForMonth('feb');
       const dayKey = `day${currentDay}`;
       if (febData[dayKey]) {
-        return <Reader devotional={febData[dayKey]} month="feb" day={currentDay} />;
+        return (
+          <Reader devotional={febData[dayKey]} month="feb" day={currentDay} days={days} />
+        );
       }
       // Find first available day in Feb
-      const firstDay = Object.keys(febData).find(key => key.startsWith('day'));
-      if (firstDay) {
-        const dayNum = parseInt(firstDay.replace('day', ''));
-        return <Reader devotional={febData[firstDay]} month="feb" day={dayNum} />;
+      if (days.length > 0) {
+        return (
+          <Reader devotional={febData[`day${days[0]}`]} month="feb" day={days[0]} days={days} />
+        );
       }
     }
     redirect('/feb/day/1');
   }
 
-  // Find today's devotional, if not found, use the first available
+  // Check if today's devotional exists
   const dayKey = `day${currentDay}`;
   const devotional = monthData[dayKey];
 
+  // Get all days for the month
+  const days = await getAllDaysForMonth(currentMonth);
+
   if (devotional) {
-    return <Reader devotional={devotional} month={currentMonth} day={currentDay} />;
+    return (
+      <Reader devotional={devotional} month={currentMonth} day={currentDay} days={days} />
+    );
   }
 
   // Find first available day in the month
-  const firstDayKey = Object.keys(monthData).find(key => key.startsWith('day'));
-  if (firstDayKey) {
-    const dayNum = parseInt(firstDayKey.replace('day', ''));
-    return <Reader devotional={monthData[firstDayKey]} month={currentMonth} day={dayNum} />;
+  if (days.length > 0) {
+    const firstDay = days[0];
+    return (
+      <Reader devotional={monthData[`day${firstDay}`]} month={currentMonth} day={firstDay} days={days} />
+    );
   }
 
   redirect('/feb/day/1');
