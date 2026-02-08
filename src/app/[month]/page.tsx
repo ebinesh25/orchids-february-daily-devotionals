@@ -5,6 +5,7 @@ import { ArticleCard } from "@/components/ArticleCard";
 
 type Props = {
   params: Promise<{ month: string }>;
+  searchParams: Promise<{ la?: string }>;
 };
 
 export async function generateMetadata({ params }: Props) {
@@ -14,8 +15,10 @@ export async function generateMetadata({ params }: Props) {
   };
 }
 
-export default async function MonthPage({ params }: Props) {
+export default async function MonthPage({ params, searchParams }: Props) {
   const { month } = await params;
+  const { la } = await searchParams;
+  const language = la === "ta" ? "tamil" : "english";
   const availableMonths = await getAvailableMonths();
 
   // Validate month exists
@@ -57,6 +60,7 @@ export default async function MonthPage({ params }: Props) {
               month={month}
               day={day}
               devotional={devotional}
+              language={language}
             />
           ))}
         </div>

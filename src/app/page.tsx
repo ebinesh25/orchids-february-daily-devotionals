@@ -4,12 +4,13 @@ import { MonthTabsWrapper } from "@/components/MonthTabsWrapper";
 import { ArticleCard } from "@/components/ArticleCard";
 
 type Props = {
-  searchParams: Promise<{ month?: string }>;
+  searchParams: Promise<{ month?: string; la?: string }>;
 };
 
 export default async function Home({ searchParams }: Props) {
   const params = await searchParams;
   const availableMonths = await getAvailableMonths();
+  const language = params.la === "ta" ? "tamil" : "english";
 
   // If no months available, show empty state
   if (availableMonths.length === 0) {
@@ -63,6 +64,7 @@ export default async function Home({ searchParams }: Props) {
                 month={selectedMonth}
                 day={day}
                 devotional={devotional}
+                language={language}
               />
             ))}
           </div>
@@ -116,6 +118,7 @@ export default async function Home({ searchParams }: Props) {
                 month={monthData}
                 day={day}
                 devotional={devotional}
+                language={language}
               />
             ))}
           </div>

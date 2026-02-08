@@ -8,11 +8,16 @@ interface ArticleCardProps {
   month: string;
   day: number;
   devotional: Devotional;
+  language?: "english" | "tamil";
 }
 
-export function ArticleCard({ month, day, devotional }: ArticleCardProps) {
-  const title = devotional.english.title;
-  const excerpt = generateExcerpt(devotional.english.data, 100);
+export function ArticleCard({ month, day, devotional, language = "english" }: ArticleCardProps) {
+  const langData = language === "english" ? devotional.english : devotional.tamil;
+  // Remove day prefix from title (both English "Day X -" and Tamil "நாள் X -")
+  const title = langData.title
+    .replace(/^Day \d+\s*[-—]\s*/, "")
+    .replace(/^நாள் \d+\s*[-—]\s*/, "");
+  const excerpt = generateExcerpt(langData.data, 100);
   const url = `${process.env.NEXT_PUBLIC_BASE_URL || ""}/${month}/day/${day}`;
 
   return (
@@ -21,7 +26,7 @@ export function ArticleCard({ month, day, devotional }: ArticleCardProps) {
         <div className="flex-1">
           <Link href={`/${month}/day/${day}`} className="hover:underline">
             <h3 className="font-serif font-semibold text-lg leading-tight text-primary">
-              Day {day} - {title.replace(/^Day \d+\s*[-—]\s*/, "")}
+              {language === "english" ? `Day ${day} - ` : `நாள் ${day} - `}{title}
             </h3>
           </Link>
         </div>

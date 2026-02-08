@@ -32,10 +32,12 @@ export function MonthTabs({ months, activeMonth }: MonthTabsProps) {
   const handleMonthChange = (month: string) => {
     // Check if we're on a month page (/[month]/day/[number]) or home page
     const path = window.location.pathname;
+    const language = searchParams.get("la");
 
     if (path.startsWith("/feb/") || path.startsWith("/mar/") || path.startsWith("/apr/")) {
       // On a month detail page, navigate to the month's list page
-      router.push(`/${month}`);
+      const url = language ? `/${month}?la=${language}` : `/${month}`;
+      router.push(url);
     } else {
       // On home page, update query param
       const params = new URLSearchParams(searchParams.toString());
