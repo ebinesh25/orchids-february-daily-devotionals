@@ -13,6 +13,7 @@ import {
 import { Type, Languages, Moon, Sun } from "lucide-react";
 import { useTheme } from "next-themes";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { OnboardingTour } from "@/components/OnboardingTour";
 import { DayPicker } from "@/components/DayPicker";
 
@@ -32,9 +33,10 @@ const fontSizes = [
 ];
 
 export default function Reader({ devotional, month, day, days }: ReaderProps) {
-  const [language, setLanguage] = useState<"english" | "tamil">("english");
   const [fontSize, setFontSize] = useState("text-lg");
   const { theme, setTheme } = useTheme();
+  const searchParams = useSearchParams();
+  const language = searchParams.get("la") === "ta" ? "tamil" : "english";
 
   // Clean up excessive newlines (more than 2 consecutive newlines)
   const cleanContent = (text: string) => {
@@ -61,16 +63,10 @@ export default function Reader({ devotional, month, day, days }: ReaderProps) {
 
           <div className="flex items-center gap-2">
             {/* Language Switcher */}
-            <Button
-              id="language-button"
-              variant="ghost"
-              size="icon"
-              onClick={() =>
-                setLanguage(language === "english" ? "tamil" : "english")
-              }
-              title="Switch Language"
-            >
-              <Languages className="h-5 w-5" />
+            <Button id="language-button" variant="ghost" asChild>
+              <Link href={`?la=${language === "english" ? "ta" : "en"}`}>
+                {language === "english" ? "Tamil" : "English"}
+              </Link>
             </Button>
 
             {/* Font Size Selector */}
@@ -127,7 +123,7 @@ export default function Reader({ devotional, month, day, days }: ReaderProps) {
 
         {/* Day Picker */}
         <div className="mt-12 border-t pt-8">
-          <DayPicker month={month} days={days} currentDay={day} />
+          <DayPicker month={month} days={days} currentDay={day} inline={true} />
         </div>
       </main>
 
