@@ -3,6 +3,7 @@ import Reader from "@/components/Reader";
 import { redirect } from "next/navigation";
 import { DayPicker } from "@/components/DayPicker";
 import { getAllDaysForMonth } from "@/lib/data";
+import { Suspense } from "react";
 
 export default async function TodayPage() {
   const today = new Date();
@@ -20,13 +21,17 @@ export default async function TodayPage() {
       const dayKey = `day${currentDay}`;
       if (febData[dayKey]) {
         return (
-          <Reader devotional={febData[dayKey]} month="feb" day={currentDay} days={days} />
+          <Suspense fallback={<div className="min-h-screen bg-background text-foreground flex items-center justify-center">Loading...</div>}>
+            <Reader devotional={febData[dayKey]} month="feb" day={currentDay} days={days} />
+          </Suspense>
         );
       }
       // Find first available day in Feb
       if (days.length > 0) {
         return (
-          <Reader devotional={febData[`day${days[0]}`]} month="feb" day={days[0]} days={days} />
+          <Suspense fallback={<div className="min-h-screen bg-background text-foreground flex items-center justify-center">Loading...</div>}>
+            <Reader devotional={febData[`day${days[0]}`]} month="feb" day={days[0]} days={days} />
+          </Suspense>
         );
       }
     }
@@ -42,7 +47,9 @@ export default async function TodayPage() {
 
   if (devotional) {
     return (
-      <Reader devotional={devotional} month={currentMonth} day={currentDay} days={days} />
+      <Suspense fallback={<div className="min-h-screen bg-background text-foreground flex items-center justify-center">Loading...</div>}>
+        <Reader devotional={devotional} month={currentMonth} day={currentDay} days={days} />
+      </Suspense>
     );
   }
 
@@ -50,7 +57,9 @@ export default async function TodayPage() {
   if (days.length > 0) {
     const firstDay = days[0];
     return (
-      <Reader devotional={monthData[`day${firstDay}`]} month={currentMonth} day={firstDay} days={days} />
+      <Suspense fallback={<div className="min-h-screen bg-background text-foreground flex items-center justify-center">Loading...</div>}>
+        <Reader devotional={monthData[`day${firstDay}`]} month={currentMonth} day={firstDay} days={days} />
+      </Suspense>
     );
   }
 
