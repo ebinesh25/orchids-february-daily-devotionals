@@ -5,11 +5,15 @@ import ErrorReporter from "@/components/ErrorReporter";
 import Script from "next/script";
 import { Providers } from "@/components/Providers";
 import { AnalyticsProvider } from "@/components/AnalyticsProvider";
+import { FontLoader } from "@/components/FontLoader";
 import { tamilFont, englishFont } from "./fonts";
 
 export const metadata: Metadata = {
   title: "Christian Devotionals",
   description: "Daily christian devotionals in English and Tamil",
+  icons: {
+    icon: "/favicon.ico",
+  },
 };
 
 export default function RootLayout({
@@ -19,7 +23,8 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${englishFont.variable} ${tamilFont.variable} antialiased`}>
+      <body className={`${englishFont.variable} ${tamilFont.variable} font-sans antialiased`}>
+        <FontLoader />
         <Providers>
           <AnalyticsProvider />
           <Script

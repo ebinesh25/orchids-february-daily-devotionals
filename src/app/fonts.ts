@@ -1,10 +1,12 @@
-import { Noto_Serif_Tamil, Noto_Sans } from "next/font/google";
+import { Noto_Sans_Tamil, Noto_Sans } from "next/font/google";
 
-export const tamilFont = Noto_Serif_Tamil({
+// Noto Sans Tamil has the most complete Tamil character coverage
+export const tamilFont = Noto_Sans_Tamil({
   subsets: ["tamil"],
-  weight: ["400", "700"],
+  weight: ["400", "500", "600", "700"],
   variable: "--font-tamil",
   display: "swap",
+  preload: true,
 });
 
 export const englishFont = Noto_Sans({

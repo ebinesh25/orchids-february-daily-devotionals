@@ -2,11 +2,21 @@ import { NextRequest, NextResponse } from "next/server";
 import { isValidLang } from "./types/lang";
 
 /**
- * Known month names for route detection
+ * Known month names for route detection (includes both short and full names)
  */
 const KNOWN_MONTHS = [
-  "jan", "feb", "mar", "apr", "may", "jun",
-  "jul", "aug", "sep", "oct", "nov", "dec"
+  "jan", "january",
+  "feb", "february",
+  "mar", "march",
+  "apr", "april",
+  "may",
+  "jun", "june",
+  "jul", "july",
+  "aug", "august",
+  "sep", "september",
+  "oct", "october",
+  "nov", "november",
+  "dec", "december"
 ];
 
 /**

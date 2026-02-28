@@ -40,10 +40,10 @@ export default async function LangHome({ params }: LangPageProps) {
     return (
       <div className="min-h-screen bg-background text-foreground flex items-center justify-center">
         <div className="text-center">
-          <h1 className={`font-serif text-2xl font-bold text-primary mb-2 ${lang === "ta" ? "lang-ta" : "lang-en"}`}>
+          <h1 className={`text-2xl font-bold text-primary mb-2 ${lang === "ta" ? "lang-ta font-sans" : "lang-en font-serif"}`}>
             {lang === "ta" ? "அர்ப்பணன்கள் இல்லை" : "No Devotionals Available"}
           </h1>
-          <p className={`text-muted-foreground ${lang === "ta" ? "lang-ta" : "lang-en"}`}>
+          <p className={`text-muted-foreground ${lang === "ta" ? "lang-ta font-sans" : "lang-en"}`}>
             {lang === "ta" ? "பிறகு சரிபார்க்கவும்." : "Please check back later."}
           </p>
         </div>
@@ -77,7 +77,7 @@ export default async function LangHome({ params }: LangPageProps) {
       {/* Month Tabs and Article List Section */}
       <section className="border-t bg-muted/30">
         <div className="container mx-auto max-w-4xl px-4 py-8">
-          <h2 className={`font-serif text-2xl font-bold text-primary mb-4 ${lang === "ta" ? "lang-ta" : "lang-en"}`}>
+          <h2 className={`text-2xl font-bold text-primary mb-4 ${lang === "ta" ? "lang-ta font-sans" : "lang-en font-serif"}`}>
             {lang === "ta" ? "மாதம் வாரியாக தேடுங்கள்" : "Browse by Month"}
           </h2>
 

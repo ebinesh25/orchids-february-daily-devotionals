@@ -56,7 +56,7 @@ export default async function LangMonthPage({ params }: MonthPageProps) {
           >
             {lang === "ta" ? "அர்ப்பணன்" : "Devotional"}
           </a>
-          <div className={`text-sm text-muted-foreground ${lang === "ta" ? "lang-ta" : "lang-en"}`}>
+          <div className={`text-sm text-muted-foreground ${lang === "ta" ? "lang-ta font-sans" : "lang-en"}`}>
             {month.charAt(0).toUpperCase() + month.slice(1)}{" "}
             {lang === "ta" ? "அர்ப்பணன்கள்" : "Devotionals"}
           </div>
@@ -72,7 +72,7 @@ export default async function LangMonthPage({ params }: MonthPageProps) {
 
       {/* Articles List */}
       <main className="container mx-auto max-w-4xl px-4 py-8">
-        <h1 className={`font-serif text-3xl font-bold text-primary mb-6 ${lang === "ta" ? "lang-ta" : "lang-en"}`}>
+        <h1 className={`text-3xl font-bold text-primary mb-6 ${lang === "ta" ? "lang-ta font-sans" : "lang-en font-serif"}`}>
           {month.charAt(0).toUpperCase() + month.slice(1)}{" "}
           {lang === "ta" ? "கட்டுரைகள்" : "Articles"}
         </h1>

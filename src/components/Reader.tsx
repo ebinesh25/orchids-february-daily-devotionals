@@ -170,13 +170,13 @@ export default function Reader({ devotional, month, day, days, lang, showFooter=
       <main className="container mx-auto max-w-2xl px-4 py-8 md:py-12">
         {/* Title */}
         <h1
-          className={`font-serif font-bold text-3xl md:text-4xl mb-8 text-primary ${fontSize} ${lang === "ta" ? "lang-ta" : "lang-en"}`}
+          className={`font-bold text-3xl md:text-4xl mb-8 text-primary ${fontSize} ${lang === "ta" ? "lang-ta font-sans" : "lang-en font-serif"}`}
         >
           {title}
         </h1>
 
         <article
-          className={`prose prose-slate dark:prose-invert max-w-none font-serif leading-relaxed text-left ${fontSize} ${lang === "ta" ? "lang-ta" : "lang-en"}`}
+          className={`prose prose-slate dark:prose-invert max-w-none leading-relaxed text-left ${fontSize} ${lang === "ta" ? "lang-ta font-sans" : "lang-en font-serif"}`}
         >
           <div className="whitespace-pre-wrap">
             <ReactMarkdown>{content}</ReactMarkdown>
