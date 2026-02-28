@@ -79,6 +79,7 @@ export default async function LangMonthPage({ params }: MonthPageProps) {
         <div className="grid gap-4 md:grid-cols-2">
           {devotionals.map(({ day, devotional }) => (
             <ArticleCard
+              lang={lang}
               key={day}
               month={month}
               day={day}
