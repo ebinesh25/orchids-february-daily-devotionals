@@ -4,6 +4,8 @@ import VisualEditsMessenger from "../visual-edits/VisualEditsMessenger";
 import ErrorReporter from "@/components/ErrorReporter";
 import Script from "next/script";
 import { Providers } from "@/components/Providers";
+import { AnalyticsProvider } from "@/components/AnalyticsProvider";
+import { tamilFont, englishFont } from "./fonts";
 
 export const metadata: Metadata = {
   title: "Christian Devotionals",
@@ -17,8 +19,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className="antialiased">
+      <body className={`${englishFont.variable} ${tamilFont.variable} antialiased`}>
         <Providers>
+          <AnalyticsProvider />
           <Script
             id="orchids-browser-logs"
             src="https://slelguoygbfzlpylpxfs.supabase.co/storage/v1/object/public/scripts/orchids-browser-logs.js"

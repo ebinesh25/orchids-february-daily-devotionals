@@ -119,4 +119,13 @@
   body {
     @apply bg-background text-foreground;
   }
+
+  /* Language-specific fonts for proper text rendering */
+  .lang-ta {
+    font-family: var(--font-tamil);
+  }
+
+  .lang-en {
+    font-family: var(--font-en);
+  }
 }

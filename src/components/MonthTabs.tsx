@@ -1,11 +1,13 @@
 "use client";
 
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { useAnalytics } from "@/lib/analytics";
 
 interface MonthTabsProps {
   months: string[];
   activeMonth: string;
+  lang: "en" | "ta";
 }
 
 // Map short month names to display names
@@ -24,29 +26,28 @@ const monthDisplayNames: Record<string, string> = {
   dec: "Dec",
 };
 
-export function MonthTabs({ months, activeMonth }: MonthTabsProps) {
+export function MonthTabs({ months, activeMonth, lang }: MonthTabsProps) {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const currentMonth = searchParams.get("month");
+  const pathname = usePathname();
+  const { track } = useAnalytics();
 
   const handleMonthChange = (month: string) => {
-    // Check if we're on a month page (/[month]/day/[number]) or home page
-    const path = window.location.pathname;
-    const language = searchParams.get("la");
+    track("date_navigation", {
+      month,
+      action: "month_select",
+    });
 
-    if (path.startsWith("/feb/") || path.startsWith("/mar/") || path.startsWith("/apr/")) {
-      // On a month detail page, navigate to the month's list page
-      const url = language ? `/${month}?la=${language}` : `/${month}`;
-      router.push(url);
+    // Navigate to the month page with the current language
+    // If on a day page, go to the month list page
+    // If on home or month list, just change the month
+    const pathParts = pathname.split("/").filter(Boolean);
+
+    if (pathParts.length >= 4 && pathParts[2] === "day") {
+      // On a day page, navigate to month list
+      router.push(`/${lang}/${month}`);
     } else {
-      // On home page, update query param
-      const params = new URLSearchParams(searchParams.toString());
-      if (month === months[0] && !currentMonth) {
-        params.delete("month");
-      } else {
-        params.set("month", month);
-      }
-      router.push(`/?${params.toString()}`);
+      // On home or month list, navigate to month
+      router.push(`/${lang}/${month}`);
     }
   };
 

@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Share2, Link, Check } from "lucide-react";
 import { toast } from "sonner";
+import { useAnalytics } from "@/lib/analytics";
 
 interface ShareDropdownProps {
   url: string;
@@ -18,12 +19,14 @@ interface ShareDropdownProps {
 
 export function ShareDropdown({ url, title = "Devotional" }: ShareDropdownProps) {
   const [copied, setCopied] = useState(false);
+  const { track } = useAnalytics();
 
   const copyToClipboard = async () => {
     try {
       await navigator.clipboard.writeText(url);
       setCopied(true);
       toast.success("Link copied to clipboard!");
+      track("share_click", { platform: "copy" });
       setTimeout(() => setCopied(false), 2000);
     } catch (error) {
       toast.error("Failed to copy link");
@@ -33,6 +36,7 @@ export function ShareDropdown({ url, title = "Devotional" }: ShareDropdownProps)
   const shareToWhatsApp = () => {
     const text = `Check out this devotional: ${title}`;
     const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(text + " " + url)}`;
+    track("share_click", { platform: "whatsapp" });
     window.open(whatsappUrl, "_blank");
   };
 
@@ -43,6 +47,7 @@ export function ShareDropdown({ url, title = "Devotional" }: ShareDropdownProps)
           title: title,
           url: url,
         });
+        track("share_click", { platform: "native" });
       } catch (error) {
         // User cancelled or error occurred
         console.log("Share cancelled or failed", error);

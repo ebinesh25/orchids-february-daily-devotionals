@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import ReactMarkdown from "react-markdown";
 import { Devotional } from "@/lib/data";
 import { Button } from "@/components/ui/button";
@@ -13,15 +13,19 @@ import {
 import { Type, Languages, Moon, Sun } from "lucide-react";
 import { useTheme } from "next-themes";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { OnboardingTour } from "@/components/OnboardingTour";
 import { DayPicker } from "@/components/DayPicker";
+import { useAnalytics } from "@/lib/analytics";
+import { getAlternateLang } from "@/types/lang";
 
 interface ReaderProps {
   devotional: Devotional;
   month: string;
   day: number;
   days: number[];
+  lang: "en" | "ta";
+  showFooter: boolean;
 }
 
 const fontSizes = [
@@ -32,11 +36,54 @@ const fontSizes = [
   { label: "Maximum", value: "text-2xl" },
 ];
 
-export default function Reader({ devotional, month, day, days }: ReaderProps) {
+export default function Reader({ devotional, month, day, days, lang, showFooter=true }: ReaderProps) {
   const [fontSize, setFontSize] = useState("text-lg");
   const { theme, setTheme } = useTheme();
-  const searchParams = useSearchParams();
-  const language = searchParams.get("la") === "ta" ? "tamil" : "english";
+  const pathname = usePathname();
+  const { track } = useAnalytics();
+  const language = lang === "ta" ? "tamil" : "english";
+  const readingCompleteRef = useRef<HTMLDivElement>(null);
+
+  // Track language changes when user switches via language toggle
+  useEffect(() => {
+    const prevLang = sessionStorage.getItem("prevLanguage");
+
+    if (prevLang && prevLang !== lang) {
+      track("language_change", { from: prevLang, to: lang });
+    }
+    sessionStorage.setItem("prevLanguage", lang);
+  }, [lang, track]);
+
+  // Track reading completion when user scrolls to bottom
+  useEffect(() => {
+    const storageKey = `reading-complete-${month}-${day}`;
+    const alreadyTracked = sessionStorage.getItem(storageKey);
+
+    if (alreadyTracked || !readingCompleteRef.current) {
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          track("reading_complete", {
+            month,
+            day,
+            language: language === "english" ? "en" : "ta",
+          });
+          sessionStorage.setItem(storageKey, "true");
+          observer.disconnect();
+        }
+      },
+      { threshold: 0.5 }
+    );
+
+    observer.observe(readingCompleteRef.current);
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [month, day, language, track]);
 
   // Clean up excessive newlines (more than 2 consecutive newlines)
   const cleanContent = (text: string) => {
@@ -55,17 +102,23 @@ export default function Reader({ devotional, month, day, days }: ReaderProps) {
       <header className="sticky top-0 z-50 w-full border-b bg-background/80 backdrop-blur-md">
         <div className="container mx-auto flex h-16 max-w-2xl items-center justify-between px-4">
           <Link
-            href="/"
-            className="font-serif text-xl font-bold tracking-tight text-primary"
+            href={`/${lang}`}
+            className={`font-serif text-xl font-bold text-primary ${lang === "en" ? "tracking-tight" : ""}`}
           >
-            Devotional
+            {lang === "ta" ? "அர்ப்பணன்" : "Devotional"}
           </Link>
 
           <div className="flex items-center gap-2">
+            {/* Language Indicator Badge */}
+            <span className="hidden sm:inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-primary/10 text-primary">
+              {lang === "en" ? "EN" : "தமிழ்"}
+            </span>
+
             {/* Language Switcher */}
-            <Button id="language-button" variant="ghost" asChild>
-              <Link href={`?la=${language === "english" ? "ta" : "en"}`}>
-                {language === "english" ? "Tamil" : "English"}
+            <Button id="language-button" variant="ghost" size="sm" asChild>
+              <Link href={`/${getAlternateLang(lang)}${pathname.slice(3)}`}>
+                <Languages className="h-4 w-4 mr-1" />
+                {lang === "en" ? "தமிழ்" : "English"}
               </Link>
             </Button>
 
@@ -77,15 +130,24 @@ export default function Reader({ devotional, month, day, days }: ReaderProps) {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                {fontSizes.map((size) => (
-                  <DropdownMenuItem
-                    key={size.value}
-                    onClick={() => setFontSize(size.value)}
-                    className={fontSize === size.value ? "bg-accent" : ""}
-                  >
-                    {size.label}
-                  </DropdownMenuItem>
-                ))}
+                {fontSizes.map((size) => {
+                  const sizeValue = size.value === "text-sm" ? "small" :
+                                   size.value === "text-base" ? "medium" :
+                                   size.value === "text-lg" ? "large" :
+                                   size.value === "text-xl" ? "extra-large" : "maximum";
+                  return (
+                    <DropdownMenuItem
+                      key={size.value}
+                      onClick={() => {
+                        setFontSize(size.value);
+                        track("text_size_change", { size: sizeValue as "small" | "medium" | "large" });
+                      }}
+                      className={fontSize === size.value ? "bg-accent" : ""}
+                    >
+                      {size.label}
+                    </DropdownMenuItem>
+                  );
+                })}
               </DropdownMenuContent>
             </DropdownMenu>
 
@@ -108,13 +170,13 @@ export default function Reader({ devotional, month, day, days }: ReaderProps) {
       <main className="container mx-auto max-w-2xl px-4 py-8 md:py-12">
         {/* Title */}
         <h1
-          className={`font-serif font-bold text-3xl md:text-4xl mb-8 text-primary ${fontSize}`}
+          className={`font-serif font-bold text-3xl md:text-4xl mb-8 text-primary ${fontSize} ${lang === "ta" ? "lang-ta" : "lang-en"}`}
         >
           {title}
         </h1>
 
         <article
-          className={`prose prose-slate dark:prose-invert max-w-none font-serif leading-relaxed ${fontSize}`}
+          className={`prose prose-slate dark:prose-invert max-w-none font-serif leading-relaxed text-left ${fontSize} ${lang === "ta" ? "lang-ta" : "lang-en"}`}
         >
           <div className="whitespace-pre-wrap">
             <ReactMarkdown>{content}</ReactMarkdown>
@@ -123,14 +185,19 @@ export default function Reader({ devotional, month, day, days }: ReaderProps) {
 
         {/* Day Picker */}
         <div className="mt-12 border-t pt-8">
-          <DayPicker month={month} days={days} currentDay={day} inline={true} />
+          <DayPicker lang={lang} month={month} days={days} currentDay={day} inline={true} />
         </div>
+
+        {/* Reading completion tracking marker */}
+        <div ref={readingCompleteRef} aria-hidden="true" />
       </main>
 
       {/* Footer */}
-      <footer className="mt-20 border-t py-8 text-center text-sm text-muted-foreground">
-        <p>© 2026 Christian Devotionals. May God bless you.</p>
-      </footer>
+      {showFooter && 
+        <footer className="mt-20 border-t py-8 text-center text-sm text-muted-foreground">
+          <p>© 2026 Christian Devotionals. May God bless you.</p>
+        </footer>
+        }
     </div>
   );
 }

@@ -2,19 +2,23 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { TrackedLink } from "@/components/TrackedLink";
 
 interface DayPickerProps {
   month: string;
   days: number[];
   currentDay: number;
   inline?: boolean;
+  lang: "en" | "ta";
 }
 
-export function DayPicker({ month, days, currentDay, inline = false }: DayPickerProps) {
+export function DayPicker({ month, days, currentDay, inline = false, lang }: DayPickerProps) {
   const dayLinks = days.map((day) => (
-    <Link
+    <TrackedLink
       key={day}
-      href={`/${month}/day/${day}`}
+      href={`/${lang}/${month}/day/${day}`}
+      eventName="date_navigation"
+      eventPayload={{ month, day, action: "day_select" }}
       className={cn(
         "flex h-10 w-10 items-center justify-center rounded-lg font-medium transition-all text-sm",
         day === currentDay
@@ -23,7 +27,7 @@ export function DayPicker({ month, days, currentDay, inline = false }: DayPicker
       )}
     >
       {day}
-    </Link>
+    </TrackedLink>
   ));
 
   if (inline) {
@@ -33,9 +37,13 @@ export function DayPicker({ month, days, currentDay, inline = false }: DayPicker
           {/* Previous Button */}
           {currentDay > 1 && (
             <Button variant="ghost" size="icon" className="h-8 w-8" asChild>
-              <Link href={`/${month}/day/${currentDay - 1}`}>
+              <TrackedLink
+                href={`/${lang}/${month}/day/${currentDay - 1}`}
+                eventName="date_navigation"
+                eventPayload={{ month, day: currentDay - 1, action: "prev_next" }}
+              >
                 <ChevronLeft className="h-4 w-4" />
-              </Link>
+              </TrackedLink>
             </Button>
           )}
           {currentDay <= 1 && <div className="w-8" />}
@@ -48,9 +56,13 @@ export function DayPicker({ month, days, currentDay, inline = false }: DayPicker
           {/* Next Button */}
           {currentDay < Math.max(...days) && (
             <Button variant="ghost" size="icon" className="h-8 w-8" asChild>
-              <Link href={`/${month}/day/${currentDay + 1}`}>
+              <TrackedLink
+                href={`/${lang}/${month}/day/${currentDay + 1}`}
+                eventName="date_navigation"
+                eventPayload={{ month, day: currentDay + 1, action: "prev_next" }}
+              >
                 <ChevronRight className="h-4 w-4" />
-              </Link>
+              </TrackedLink>
             </Button>
           )}
           {currentDay >= Math.max(...days) && <div className="w-8" />}
@@ -74,9 +86,13 @@ export function DayPicker({ month, days, currentDay, inline = false }: DayPicker
           {/* Previous Button */}
           {currentDay > 1 && (
             <Button variant="outline" size="icon" asChild>
-              <Link href={`/${month}/day/${currentDay - 1}`}>
+              <TrackedLink
+                href={`/${lang}/${month}/day/${currentDay - 1}`}
+                eventName="date_navigation"
+                eventPayload={{ month, day: currentDay - 1, action: "prev_next" }}
+              >
                 <ChevronLeft className="h-4 w-4" />
-              </Link>
+              </TrackedLink>
             </Button>
           )}
           {currentDay <= 1 && <div className="w-10" />}
@@ -84,9 +100,11 @@ export function DayPicker({ month, days, currentDay, inline = false }: DayPicker
           {/* Day Numbers */}
           <div className="flex flex-wrap justify-center gap-2">
             {days.map((day) => (
-              <Link
+              <TrackedLink
                 key={day}
-                href={`/${month}/day/${day}`}
+                href={`/${lang}/${month}/day/${day}`}
+                eventName="date_navigation"
+                eventPayload={{ month, day, action: "day_select" }}
                 className={cn(
                   "flex h-12 w-12 items-center justify-center rounded-lg font-medium transition-all",
                   day === currentDay
@@ -95,16 +113,20 @@ export function DayPicker({ month, days, currentDay, inline = false }: DayPicker
                 )}
               >
                 {day}
-              </Link>
+              </TrackedLink>
             ))}
           </div>
 
           {/* Next Button */}
           {currentDay < Math.max(...days) && (
             <Button variant="outline" size="icon" asChild>
-              <Link href={`/${month}/day/${currentDay + 1}`}>
+              <TrackedLink
+                href={`/${lang}/${month}/day/${currentDay + 1}`}
+                eventName="date_navigation"
+                eventPayload={{ month, day: currentDay + 1, action: "prev_next" }}
+              >
                 <ChevronRight className="h-4 w-4" />
-              </Link>
+              </TrackedLink>
             </Button>
           )}
           {currentDay >= Math.max(...days) && <div className="w-10" />}
