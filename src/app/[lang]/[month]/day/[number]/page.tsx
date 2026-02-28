@@ -14,8 +14,8 @@ export async function generateMetadata({ params }: PageProps) {
 
   return {
     title: lang === "ta"
-      ? `${monthName} நாள் ${number} அர்ப்பணன்`
-      : `${monthName} Day ${number} Devotional`,
+      ? `${monthName} நாள் ${number} வேதாகம தொடர்`
+      : `${monthName} Day ${number} Bible Series`,
     alternates: {
       canonical: `/${lang}/${month}/day/${number}`,
       languages: {

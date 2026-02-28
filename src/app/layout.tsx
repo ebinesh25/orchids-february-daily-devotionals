@@ -9,8 +9,8 @@ import { FontLoader } from "@/components/FontLoader";
 import { tamilFont, englishFont } from "./fonts";
 
 export const metadata: Metadata = {
-  title: "Christian Devotionals",
-  description: "Daily christian devotionals in English and Tamil",
+  title: "Christian Bible Series",
+  description: "Daily christian bible series in English and Tamil",
   icons: {
     icon: "/favicon.ico",
   },

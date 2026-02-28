@@ -9,7 +9,7 @@ export async function generateMetadata({ params }: { params: Promise<LangParams>
   const { lang } = await params;
 
   return {
-    title: lang === "ta" ? "இன்றிய அர்ப்பணன்" : "Today's Devotional",
+    title: lang === "ta" ? "இன்றிய வேதாகம தொடர்" : "Today's Bible Series",
     alternates: {
       canonical: `/${lang}/today`,
       languages: {

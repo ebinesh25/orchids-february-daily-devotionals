@@ -17,7 +17,7 @@ interface ShareDropdownProps {
   title?: string;
 }
 
-export function ShareDropdown({ url, title = "Devotional" }: ShareDropdownProps) {
+export function ShareDropdown({ url, title = "Bible Series" }: ShareDropdownProps) {
   const [copied, setCopied] = useState(false);
   const { track } = useAnalytics();
 
@@ -34,7 +34,7 @@ export function ShareDropdown({ url, title = "Devotional" }: ShareDropdownProps)
   };
 
   const shareToWhatsApp = () => {
-    const text = `Check out this devotional: ${title}`;
+    const text = `Check out this bible series: ${title}`;
     const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(text + " " + url)}`;
     track("share_click", { platform: "whatsapp" });
     window.open(whatsappUrl, "_blank");

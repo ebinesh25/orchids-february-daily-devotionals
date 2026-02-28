@@ -12,10 +12,10 @@ interface LangPageProps {
 export async function generateMetadata({ params }: LangPageProps) {
   const { lang } = await params;
   return {
-    title: lang === "ta" ? "தமிழ் கிறிஸ்தவ அர்ப்பணன்கள்" : "Christian Devotionals",
+    title: lang === "ta" ? "தமிழ் கிறிஸ்தவ வேதாகம தொடர்கள்" : "Christian Bible Series",
     description: lang === "ta"
-      ? "தினசரி கிறிஸ்தவ அர்ப்பணன்கள் தமிழில்"
-      : "Daily christian devotionals in English and Tamil",
+      ? "தினசரி கிறிஸ்தவ வேதாகம தொடர்கள் தமிழில்"
+      : "Daily christian bible series in English and Tamil",
     alternates: {
       canonical: `/${lang}`,
       languages: {
@@ -41,7 +41,7 @@ export default async function LangHome({ params }: LangPageProps) {
       <div className="min-h-screen bg-background text-foreground flex items-center justify-center">
         <div className="text-center">
           <h1 className={`text-2xl font-bold text-primary mb-2 ${lang === "ta" ? "lang-ta font-sans" : "lang-en font-serif"}`}>
-            {lang === "ta" ? "அர்ப்பணன்கள் இல்லை" : "No Devotionals Available"}
+            {lang === "ta" ? "வேதாகம தொடர்கள் இல்லை" : "No Bible Series Available"}
           </h1>
           <p className={`text-muted-foreground ${lang === "ta" ? "lang-ta font-sans" : "lang-en"}`}>
             {lang === "ta" ? "பிறகு சரிபார்க்கவும்." : "Please check back later."}
@@ -64,7 +64,7 @@ export default async function LangHome({ params }: LangPageProps) {
 
   return (
     <div className="min-h-screen bg-background text-foreground">
-      {/* Today's Devotional */}
+      {/* Today's Bible Series */}
       <Reader
         devotional={todayData?.devotional || devotionals[0]?.devotional}
         month={monthData}
@@ -104,7 +104,7 @@ export default async function LangHome({ params }: LangPageProps) {
 
       {/* Footer */}
       <footer className="border-t py-8 text-center text-sm text-muted-foreground">
-        <p>© 2026 Christian Devotionals. May God bless you.</p>
+        <p>© 2026 Christian Bible Series. May God bless you.</p>
       </footer>
     </div>
   );

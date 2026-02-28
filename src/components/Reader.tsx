@@ -103,9 +103,9 @@ export default function Reader({ devotional, month, day, days, lang, showFooter=
         <div className="container mx-auto flex h-16 max-w-2xl items-center justify-between px-4">
           <Link
             href={`/${lang}`}
-            className={`font-serif text-xl font-bold text-primary ${lang === "en" ? "tracking-tight" : ""}`}
+            className={`text-xl font-bold text-primary ${lang === "ta" ? "lang-ta font-sans" : "lang-en font-serif tracking-tight"}`}
           >
-            {lang === "ta" ? "அர்ப்பணன்" : "Devotional"}
+            {lang === "ta" ? "வேதாகம தொடர்" : "Bible Series"}
           </Link>
 
           <div className="flex items-center gap-2">
@@ -195,7 +195,7 @@ export default function Reader({ devotional, month, day, days, lang, showFooter=
       {/* Footer */}
       {showFooter && 
         <footer className="mt-20 border-t py-8 text-center text-sm text-muted-foreground">
-          <p>© 2026 Christian Devotionals. May God bless you.</p>
+          <p>© 2026 Christian Bible Series. May God bless you.</p>
         </footer>
         }
     </div>
