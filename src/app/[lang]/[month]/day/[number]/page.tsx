@@ -1,4 +1,4 @@
-import { getDevotional, getAllDaysForMonth } from "@/lib/data";
+import { getDevotional, getAllDaysForMonth, normalizeMonthName } from "@/lib/data";
 import Reader from "@/components/Reader";
 import { notFound } from "next/navigation";
 import { LangParams } from "@/types/lang";
@@ -40,13 +40,16 @@ export default async function LangDayPage({ params }: PageProps) {
     notFound();
   }
 
-  const result = await getDevotional(month, day);
+  // Normalize month name (e.g., "march" → "mar") for data lookup
+  const normalizedMonth = normalizeMonthName(month);
+
+  const result = await getDevotional(normalizedMonth, day);
 
   if (!result) {
     notFound();
   }
 
-  const days = await getAllDaysForMonth(month);
+  const days = await getAllDaysForMonth(normalizedMonth);
 
   return (
     <Reader

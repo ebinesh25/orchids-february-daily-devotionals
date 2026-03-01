@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { getAvailableMonths, getAllDevotionalsForMonth } from "@/lib/data";
+import { getAvailableMonths, getAllDevotionalsForMonth, normalizeMonthName } from "@/lib/data";
 import { MonthTabsWrapper } from "@/components/MonthTabsWrapper";
 import { ArticleCard } from "@/components/ArticleCard";
 import { LangParams } from "@/types/lang";
@@ -38,12 +38,15 @@ export default async function LangMonthPage({ params }: MonthPageProps) {
   const language = lang === "ta" ? "tamil" : "english";
   const availableMonths = await getAvailableMonths();
 
+  // Normalize month name (e.g., "march" → "mar") for data lookup
+  const normalizedMonth = normalizeMonthName(month);
+
   // Validate month exists
-  if (!availableMonths.includes(month)) {
+  if (!availableMonths.includes(normalizedMonth)) {
     notFound();
   }
 
-  const devotionals = await getAllDevotionalsForMonth(month);
+  const devotionals = await getAllDevotionalsForMonth(normalizedMonth);
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -66,7 +69,7 @@ export default async function LangMonthPage({ params }: MonthPageProps) {
       {/* Month Tabs */}
       <MonthTabsWrapper
         months={availableMonths}
-        activeMonth={month}
+        activeMonth={normalizedMonth}
         lang={lang}
       />
 
@@ -81,7 +84,7 @@ export default async function LangMonthPage({ params }: MonthPageProps) {
             <ArticleCard
               lang={lang}
               key={day}
-              month={month}
+              month={normalizedMonth}
               day={day}
               devotional={devotional}
               language={language}

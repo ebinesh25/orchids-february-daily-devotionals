@@ -17,6 +17,42 @@ export interface MonthData {
   };
 }
 
+/**
+ * Normalize month name to three-letter abbreviation
+ * Converts full month names (march, january) to abbreviations (mar, jan)
+ * Also handles already-abbreviated names
+ */
+export function normalizeMonthName(month: string): string {
+  const monthMap: Record<string, string> = {
+    "january": "jan",
+    "jan": "jan",
+    "february": "feb",
+    "feb": "feb",
+    "march": "mar",
+    "mar": "mar",
+    "april": "apr",
+    "apr": "apr",
+    "may": "may",
+    "june": "jun",
+    "jun": "jun",
+    "july": "jul",
+    "jul": "jul",
+    "august": "aug",
+    "aug": "aug",
+    "september": "sep",
+    "sep": "sep",
+    "october": "oct",
+    "oct": "oct",
+    "november": "nov",
+    "nov": "nov",
+    "december": "dec",
+    "dec": "dec",
+  };
+
+  const normalized = monthMap[month.toLowerCase()];
+  return normalized || month.toLowerCase();
+}
+
 export async function getDevotionals(): Promise<MonthData> {
   const filePath = path.join(process.cwd(), 'data.json');
   const jsonData = await fs.readFile(filePath, 'utf-8');
