@@ -16,6 +16,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { OnboardingTour } from "@/components/OnboardingTour";
 import { DayPicker } from "@/components/DayPicker";
+import { ShareDropdown } from "@/components/ShareDropdown";
 import { useAnalytics, type AnalyticsEventData } from "@/lib/analytics";
 import { getAlternateLang } from "@/types/lang";
 
@@ -134,6 +135,7 @@ function AudioPlayer({
       <audio
         ref={audioRef}
         controls
+        preload="none"
         className="w-full"
         onCanPlay={handleCanPlay}
         onError={handleError}
@@ -299,12 +301,18 @@ export default function Reader({ devotional, month, day, days, lang, showFooter=
 
       {/* Content */}
       <main className="container mx-auto max-w-2xl px-4 py-8 md:py-12">
-        {/* Title */}
-        <h1
-          className={`font-bold text-3xl md:text-4xl mb-6 text-primary ${fontSize} ${lang === "ta" ? "lang-ta font-sans" : "lang-en font-serif"}`}
-        >
-          {title}
-        </h1>
+        {/* Title with Share Button */}
+        <div className="flex items-center justify-between gap-4 mb-6">
+          <h1
+            className={`font-bold text-3xl md:text-4xl text-primary ${fontSize} ${lang === "ta" ? "lang-ta font-sans" : "lang-en font-serif"} flex-1`}
+          >
+            {title}
+          </h1>
+          <ShareDropdown
+            url={typeof window !== "undefined" ? window.location.href : ""}
+            title={title}
+          />
+        </div>
 
         {/* Audio Player */}
         <AudioPlayer src={audioSrc} lang={lang} track={track} month={month} day={day} />
