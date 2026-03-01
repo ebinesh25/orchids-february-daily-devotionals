@@ -8,7 +8,11 @@ export type AnalyticsEvent =
   | 'share_click'
   | 'date_navigation'
   | 'reading_complete'
-  | 'text_size_change';
+  | 'text_size_change'
+  | 'audio_play'
+  | 'audio_pause'
+  | 'audio_complete'
+  | 'audio_speed_change';
 
 /**
  * Payload data for each analytics event type
@@ -33,6 +37,31 @@ export interface AnalyticsEventData {
   };
   text_size_change: {
     size: 'small' | 'medium' | 'large' | 'extra-large' | 'maximum';
+  };
+  audio_play: {
+    month: string;
+    day: number;
+    lang: string;
+    speed: number;
+  };
+  audio_pause: {
+    month: string;
+    day: number;
+    lang: string;
+    speed: number;
+  };
+  audio_complete: {
+    month: string;
+    day: number;
+    lang: string;
+    speed: number;
+  };
+  audio_speed_change: {
+    month: string;
+    day: number;
+    lang: string;
+    from: number;
+    to: number;
   };
 }
 

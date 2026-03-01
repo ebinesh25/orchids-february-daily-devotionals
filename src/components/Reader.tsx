@@ -16,7 +16,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { OnboardingTour } from "@/components/OnboardingTour";
 import { DayPicker } from "@/components/DayPicker";
-import { useAnalytics } from "@/lib/analytics";
+import { useAnalytics, type AnalyticsEventData } from "@/lib/analytics";
 import { getAlternateLang } from "@/types/lang";
 
 // Audio Player Component
@@ -29,15 +29,30 @@ function AudioPlayer({
 }: {
   src: string | null;
   lang: "en" | "ta";
-  track: (event: string, data?: Record<string, string | number | boolean>) => void;
+  track: <E extends keyof AnalyticsEventData>(event: E, data?: AnalyticsEventData[E]) => void;
   month: string;
   day: number;
 }) {
   const [error, setError] = useState(false);
+  const [audioAvailable, setAudioAvailable] = useState(false);
   const [speed, setSpeed] = useState(0.85);
   const audioRef = useRef<HTMLAudioElement>(null);
 
   const speeds = [0.5, 0.75, 0.85, 1, 1.25, 1.5, 1.75, 2];
+
+  // Handle audio loaded successfully
+  const handleCanPlay = () => {
+    setAudioAvailable(true);
+    if (audioRef.current) {
+      audioRef.current.playbackRate = speed;
+    }
+  };
+
+  // Handle audio load error
+  const handleError = () => {
+    setError(true);
+    setAudioAvailable(false);
+  };
 
   // Set playback speed when speed state changes
   useEffect(() => {
@@ -46,13 +61,10 @@ function AudioPlayer({
     }
   }, [speed]);
 
-  // Set default speed on mount and add event listeners
+  // Add analytics event listeners
   useEffect(() => {
     const audio = audioRef.current;
-    if (!audio) return;
-
-    // Set default speed
-    audio.playbackRate = 0.85;
+    if (!audio || !audioAvailable) return;
 
     // Track play event
     const handlePlay = () => {
@@ -78,8 +90,9 @@ function AudioPlayer({
       audio.removeEventListener("pause", handlePause);
       audio.removeEventListener("ended", handleEnded);
     };
-  }, [track, month, day, lang, speed]);
+  }, [track, month, day, lang, speed, audioAvailable]);
 
+  // Hide if no src or error
   if (!src || error) {
     return null;
   }
@@ -93,34 +106,37 @@ function AudioPlayer({
             {lang === "ta" ? "ஆடியோ" : "Audio"}
           </span>
         </div>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="sm" className="h-8 gap-1">
-              <Gauge className="h-4 w-4" />
-              <span className="text-xs">{speed}x</span>
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-32">
-            {speeds.map((s) => (
-              <DropdownMenuItem
-                key={s}
-                onClick={() => {
-                  setSpeed(s);
-                  track("audio_speed_change", { month, day, lang, from: speed, to: s });
-                }}
-                className={speed === s ? "bg-accent" : ""}
-              >
-                {s}x
-              </DropdownMenuItem>
-            ))}
-          </DropdownMenuContent>
-        </DropdownMenu>
+        {audioAvailable && (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="sm" className="h-8 gap-1">
+                <Gauge className="h-4 w-4" />
+                <span className="text-xs">{speed}x</span>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-32">
+              {speeds.map((s) => (
+                <DropdownMenuItem
+                  key={s}
+                  onClick={() => {
+                    setSpeed(s);
+                    track("audio_speed_change", { month, day, lang, from: speed, to: s });
+                  }}
+                  className={speed === s ? "bg-accent" : ""}
+                >
+                  {s}x
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
       </div>
       <audio
         ref={audioRef}
         controls
         className="w-full"
-        onError={() => setError(true)}
+        onCanPlay={handleCanPlay}
+        onError={handleError}
       >
         <source src={src} type="audio/mpeg" />
         {lang === "ta" ? "உங்கள் உலாவி ஆடியோ எலிமன்டை ஆதரிக்கவில்லை." : "Your browser does not support the audio element."}
