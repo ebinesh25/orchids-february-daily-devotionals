@@ -10,7 +10,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Type, Languages, Moon, Sun } from "lucide-react";
+import { Type, Languages, Moon, Sun, Volume2, Gauge } from "lucide-react";
 import { useTheme } from "next-themes";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -18,6 +18,116 @@ import { OnboardingTour } from "@/components/OnboardingTour";
 import { DayPicker } from "@/components/DayPicker";
 import { useAnalytics } from "@/lib/analytics";
 import { getAlternateLang } from "@/types/lang";
+
+// Audio Player Component
+function AudioPlayer({
+  src,
+  lang,
+  track,
+  month,
+  day,
+}: {
+  src: string | null;
+  lang: "en" | "ta";
+  track: (event: string, data?: Record<string, string | number | boolean>) => void;
+  month: string;
+  day: number;
+}) {
+  const [error, setError] = useState(false);
+  const [speed, setSpeed] = useState(0.85);
+  const audioRef = useRef<HTMLAudioElement>(null);
+
+  const speeds = [0.5, 0.75, 0.85, 1, 1.25, 1.5, 1.75, 2];
+
+  // Set playback speed when speed state changes
+  useEffect(() => {
+    if (audioRef.current) {
+      audioRef.current.playbackRate = speed;
+    }
+  }, [speed]);
+
+  // Set default speed on mount and add event listeners
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    // Set default speed
+    audio.playbackRate = 0.85;
+
+    // Track play event
+    const handlePlay = () => {
+      track("audio_play", { month, day, lang, speed });
+    };
+
+    // Track pause event
+    const handlePause = () => {
+      track("audio_pause", { month, day, lang, speed });
+    };
+
+    // Track audio complete event
+    const handleEnded = () => {
+      track("audio_complete", { month, day, lang, speed });
+    };
+
+    audio.addEventListener("play", handlePlay);
+    audio.addEventListener("pause", handlePause);
+    audio.addEventListener("ended", handleEnded);
+
+    return () => {
+      audio.removeEventListener("play", handlePlay);
+      audio.removeEventListener("pause", handlePause);
+      audio.removeEventListener("ended", handleEnded);
+    };
+  }, [track, month, day, lang, speed]);
+
+  if (!src || error) {
+    return null;
+  }
+
+  return (
+    <div className="mb-8 p-4 rounded-lg border bg-muted/30">
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-2">
+          <Volume2 className="h-5 w-5 text-primary" />
+          <span className={`text-sm font-medium ${lang === "ta" ? "lang-ta" : "lang-en"}`}>
+            {lang === "ta" ? "ஆடியோ" : "Audio"}
+          </span>
+        </div>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="sm" className="h-8 gap-1">
+              <Gauge className="h-4 w-4" />
+              <span className="text-xs">{speed}x</span>
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-32">
+            {speeds.map((s) => (
+              <DropdownMenuItem
+                key={s}
+                onClick={() => {
+                  setSpeed(s);
+                  track("audio_speed_change", { month, day, lang, from: speed, to: s });
+                }}
+                className={speed === s ? "bg-accent" : ""}
+              >
+                {s}x
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+      <audio
+        ref={audioRef}
+        controls
+        className="w-full"
+        onError={() => setError(true)}
+      >
+        <source src={src} type="audio/mpeg" />
+        {lang === "ta" ? "உங்கள் உலாவி ஆடியோ எலிமன்டை ஆதரிக்கவில்லை." : "Your browser does not support the audio element."}
+      </audio>
+    </div>
+  );
+}
 
 interface ReaderProps {
   devotional: Devotional;
@@ -95,6 +205,11 @@ export default function Reader({ devotional, month, day, days, lang, showFooter=
   const title = langData.title;
   const content = cleanContent(langData.data);
 
+  // Construct audio file path based on month, day, and language
+  // Format: /audio/{month}_day{day}_{language}.mp3
+  // Example: /audio/march_day2_tamil.mp3
+  const audioSrc = `/audio/${month}_day${day}_${language === "tamil" ? "tamil" : "english"}.mp3`;
+
   return (
     <div className="min-h-screen bg-background text-foreground transition-colors duration-300">
       <OnboardingTour />
@@ -170,10 +285,13 @@ export default function Reader({ devotional, month, day, days, lang, showFooter=
       <main className="container mx-auto max-w-2xl px-4 py-8 md:py-12">
         {/* Title */}
         <h1
-          className={`font-bold text-3xl md:text-4xl mb-8 text-primary ${fontSize} ${lang === "ta" ? "lang-ta font-sans" : "lang-en font-serif"}`}
+          className={`font-bold text-3xl md:text-4xl mb-6 text-primary ${fontSize} ${lang === "ta" ? "lang-ta font-sans" : "lang-en font-serif"}`}
         >
           {title}
         </h1>
+
+        {/* Audio Player */}
+        <AudioPlayer src={audioSrc} lang={lang} track={track} month={month} day={day} />
 
         <article
           className={`prose prose-slate dark:prose-invert max-w-none leading-relaxed text-left ${fontSize} ${lang === "ta" ? "lang-ta font-sans" : "lang-en font-serif"}`}
