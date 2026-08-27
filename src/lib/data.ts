@@ -1,3 +1,4 @@
+import { unstable_cache } from "next/cache";
 import { convexClient } from "./convex-client";
 import { api } from "../../convex/_generated/api";
 
@@ -19,9 +20,13 @@ export interface MonthData {
 }
 
 /**
+ * Revalidation interval in seconds (e.g. 1 hour = 3600s, 24 hours = 86400s)
+ * Keeps pages and data fast while automatically checking Convex DB periodically.
+ */
+export const CACHE_REVALIDATE_SECONDS = 3600;
+
+/**
  * Normalize month name to three-letter abbreviation
- * Converts full month names (march, january) to abbreviations (mar, jan)
- * Also handles already-abbreviated names
  */
 export function normalizeMonthName(month: string): string {
   const monthMap: Record<string, string> = {
@@ -54,84 +59,41 @@ export function normalizeMonthName(month: string): string {
   return normalized || month.toLowerCase();
 }
 
-export async function getDevotionals(): Promise<MonthData> {
-  try {
-    const data = await convexClient.query(api.devotionals.getAllDevotionals, {});
-    return data as MonthData;
-  } catch (error) {
-    console.error("Error fetching devotionals from Convex:", error);
-    return {};
-  }
-}
+/**
+ * Cached fetcher for all devotionals
+ */
+export const getDevotionals = unstable_cache(
+  async (): Promise<MonthData> => {
+    try {
+      const data = await convexClient.query(api.devotionals.getAllDevotionals, {});
+      return data as MonthData;
+    } catch (error) {
+      console.error("Error fetching devotionals from Convex:", error);
+      return {};
+    }
+  },
+  ["all-devotionals"],
+  { revalidate: CACHE_REVALIDATE_SECONDS, tags: ["devotionals"] }
+);
 
-export async function getDevotional(
-  month: string,
-  day: number
-): Promise<{ devotional: Devotional; dayNum: number } | null> {
-  const normalizedMonth = normalizeMonthName(month);
-  try {
-    const doc = await convexClient.query(api.devotionals.getDevotional, {
-      month: normalizedMonth,
-      day,
-    });
+/**
+ * Cached fetcher for a single day's devotional
+ */
+export const getDevotional = unstable_cache(
+  async (
+    month: string,
+    day: number
+  ): Promise<{ devotional: Devotional; dayNum: number } | null> => {
+    const normalizedMonth = normalizeMonthName(month);
+    try {
+      const doc = await convexClient.query(api.devotionals.getDevotional, {
+        month: normalizedMonth,
+        day,
+      });
 
-    if (!doc) return null;
+      if (!doc) return null;
 
-    const devotional: Devotional = {
-      english: {
-        title: doc.englishTitle,
-        data: doc.englishData,
-        audioUrl: doc.englishAudioUrl,
-      },
-      tamil: {
-        title: doc.tamilTitle,
-        data: doc.tamilData,
-        audioUrl: doc.tamilAudioUrl,
-      },
-    };
-
-    return { devotional, dayNum: day };
-  } catch (error) {
-    console.error(`Error fetching devotional for ${month} day ${day} from Convex:`, error);
-    return null;
-  }
-}
-
-export async function getAllDaysForMonth(month: string): Promise<number[]> {
-  const normalizedMonth = normalizeMonthName(month);
-  try {
-    const days = await convexClient.query(api.devotionals.getDaysForMonth, {
-      month: normalizedMonth,
-    });
-    return days;
-  } catch (error) {
-    console.error(`Error fetching days for ${month} from Convex:`, error);
-    return [];
-  }
-}
-
-export async function getAvailableMonths(): Promise<string[]> {
-  try {
-    const months = await convexClient.query(api.devotionals.getAvailableMonths, {});
-    return months;
-  } catch (error) {
-    console.error("Error fetching available months from Convex:", error);
-    return [];
-  }
-}
-
-export async function getAllDevotionalsForMonth(
-  month: string
-): Promise<Array<{ day: number; devotional: Devotional }>> {
-  const normalizedMonth = normalizeMonthName(month);
-  try {
-    const docs = await convexClient.query(api.devotionals.getDevotionalsForMonth, {
-      month: normalizedMonth,
-    });
-
-    return docs.map((doc) => ({
-      day: doc.day,
-      devotional: {
+      const devotional: Devotional = {
         english: {
           title: doc.englishTitle,
           data: doc.englishData,
@@ -142,13 +104,89 @@ export async function getAllDevotionalsForMonth(
           data: doc.tamilData,
           audioUrl: doc.tamilAudioUrl,
         },
-      },
-    }));
-  } catch (error) {
-    console.error(`Error fetching devotionals for ${month} from Convex:`, error);
-    return [];
-  }
-}
+      };
+
+      return { devotional, dayNum: day };
+    } catch (error) {
+      console.error(`Error fetching devotional for ${month} day ${day} from Convex:`, error);
+      return null;
+    }
+  },
+  ["single-devotional"],
+  { revalidate: CACHE_REVALIDATE_SECONDS, tags: ["devotionals"] }
+);
+
+/**
+ * Cached fetcher for all available days in a month
+ */
+export const getAllDaysForMonth = unstable_cache(
+  async (month: string): Promise<number[]> => {
+    const normalizedMonth = normalizeMonthName(month);
+    try {
+      const days = await convexClient.query(api.devotionals.getDaysForMonth, {
+        month: normalizedMonth,
+      });
+      return days;
+    } catch (error) {
+      console.error(`Error fetching days for ${month} from Convex:`, error);
+      return [];
+    }
+  },
+  ["month-days"],
+  { revalidate: CACHE_REVALIDATE_SECONDS, tags: ["devotionals"] }
+);
+
+/**
+ * Cached fetcher for list of available months
+ */
+export const getAvailableMonths = unstable_cache(
+  async (): Promise<string[]> => {
+    try {
+      const months = await convexClient.query(api.devotionals.getAvailableMonths, {});
+      return months;
+    } catch (error) {
+      console.error("Error fetching available months from Convex:", error);
+      return [];
+    }
+  },
+  ["available-months"],
+  { revalidate: CACHE_REVALIDATE_SECONDS, tags: ["devotionals"] }
+);
+
+/**
+ * Cached fetcher for all devotionals in a month
+ */
+export const getAllDevotionalsForMonth = unstable_cache(
+  async (month: string): Promise<Array<{ day: number; devotional: Devotional }>> => {
+    const normalizedMonth = normalizeMonthName(month);
+    try {
+      const docs = await convexClient.query(api.devotionals.getDevotionalsForMonth, {
+        month: normalizedMonth,
+      });
+
+      return docs.map((doc) => ({
+        day: doc.day,
+        devotional: {
+          english: {
+            title: doc.englishTitle,
+            data: doc.englishData,
+            audioUrl: doc.englishAudioUrl,
+          },
+          tamil: {
+            title: doc.tamilTitle,
+            data: doc.tamilData,
+            audioUrl: doc.tamilAudioUrl,
+          },
+        },
+      }));
+    } catch (error) {
+      console.error(`Error fetching devotionals for ${month} from Convex:`, error);
+      return [];
+    }
+  },
+  ["month-devotionals"],
+  { revalidate: CACHE_REVALIDATE_SECONDS, tags: ["devotionals"] }
+);
 
 export async function getTodayDevotional(): Promise<{
   month: string;
