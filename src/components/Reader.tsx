@@ -223,10 +223,10 @@ export default function Reader({ devotional, month, day, days, lang, showFooter=
   const title = langData.title;
   const content = cleanContent(langData.data);
 
-  // Construct audio file path based on month, day, and language
-  // Format: /audio/{month}_day{day}_{language}.mp3
-  // Example: /audio/march_day2_tamil.mp3
-  const audioSrc = `/audio/${month}_day${day}_${language === "tamil" ? "tamil" : "english"}.mp3`;
+  // Construct audio file path: use Convex storage URL if available, fallback to local path
+  const audioSrc =
+    langData.audioUrl ||
+    `/audio/${month}_day${day}_${language === "tamil" ? "tamil" : "english"}.mp3`;
 
   return (
     <div className="min-h-screen bg-background text-foreground transition-colors duration-300">
