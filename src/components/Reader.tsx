@@ -14,11 +14,24 @@ import { Type, Languages, Moon, Sun, Volume2, Gauge } from "lucide-react";
 import { useTheme } from "next-themes";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { OnboardingTour } from "@/components/OnboardingTour";
+
+import dynamic from "next/dynamic";
 import { DayPicker } from "@/components/DayPicker";
-import { ShareDropdown } from "@/components/ShareDropdown";
 import { useAnalytics, type AnalyticsEventData } from "@/lib/analytics";
 import { getAlternateLang } from "@/types/lang";
+
+
+// Dynamically load non-critical client overlays to eliminate main-thread blocking (TBT)
+const OnboardingTour = dynamic(
+  () => import("@/components/OnboardingTour").then((mod) => mod.OnboardingTour),
+  { ssr: false }
+);
+
+const ShareDropdown = dynamic(
+  () => import("@/components/ShareDropdown").then((mod) => mod.ShareDropdown),
+  { ssr: false }
+);
+
 
 // Audio Player Component
 function AudioPlayer({
@@ -223,10 +236,8 @@ export default function Reader({ devotional, month, day, days, lang, showFooter=
   const title = langData.title;
   const content = cleanContent(langData.data);
 
-  // Construct audio file path: use Convex storage URL if available, fallback to local path
-  const audioSrc =
-    langData.audioUrl ||
-    `/audio/${month}_day${day}_${language === "tamil" ? "tamil" : "english"}.mp3`;
+  // Audio file URL directly from Convex storage
+  const audioSrc = langData.audioUrl || null;
 
   return (
     <div className="min-h-screen bg-background text-foreground transition-colors duration-300">
