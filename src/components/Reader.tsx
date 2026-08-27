@@ -223,10 +223,8 @@ export default function Reader({ devotional, month, day, days, lang, showFooter=
   const title = langData.title;
   const content = cleanContent(langData.data);
 
-  // Construct audio file path: use Convex storage URL if available, fallback to local path
-  const audioSrc =
-    langData.audioUrl ||
-    `/audio/${month}_day${day}_${language === "tamil" ? "tamil" : "english"}.mp3`;
+  // Audio file URL directly from Convex storage
+  const audioSrc = langData.audioUrl || null;
 
   return (
     <div className="min-h-screen bg-background text-foreground transition-colors duration-300">
