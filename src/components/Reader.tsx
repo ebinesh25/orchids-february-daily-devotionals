@@ -49,7 +49,7 @@ function AudioPlayer({
 }) {
   const [error, setError] = useState(false);
   const [audioAvailable, setAudioAvailable] = useState(false);
-  const [speed, setSpeed] = useState(0.85);
+  const [speed, setSpeed] = useState(1);
   const audioRef = useRef<HTMLAudioElement>(null);
 
   const speeds = [0.5, 0.75, 0.85, 1, 1.25, 1.5, 1.75, 2];
