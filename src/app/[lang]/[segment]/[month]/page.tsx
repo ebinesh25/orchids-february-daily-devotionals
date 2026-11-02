@@ -8,10 +8,10 @@ import { ArchiveShell } from "@/components/ArchiveShell";
 import { DevotionCalendar } from "@/components/DevotionCalendar";
 import { MonthReadingList, type MonthReading } from "@/components/MonthReadingList";
 
-type Props = { params: Promise<{ lang: string; year: string; month: string }> };
+type Props = { params: Promise<{ lang: string; segment: string; month: string }> };
 
 export async function generateMetadata({ params }: Props) {
-  const { lang, year, month } = await params;
+  const { lang, segment: year, month } = await params;
   const path = `/${year}/${padDate(+month)}`;
   return {
     title: `${/^\d{1,2}$/.test(month) && +month >= 1 && +month <= 12 ? monthLabel(+month, lang) : month} ${year} · Bible Series`,
@@ -20,7 +20,7 @@ export async function generateMetadata({ params }: Props) {
 }
 
 export default async function MonthPage({ params }: Props) {
-  const { lang, year, month } = await params;
+  const { lang, segment: year, month } = await params;
   if (!isValidLang(lang) || year !== String(CONTENT_YEAR) || !/^\d{1,2}$/.test(month) || !validDate(+year, +month, 1)) notFound();
   if (month !== padDate(+month)) permanentRedirect(monthPath(lang, +month, +year));
 

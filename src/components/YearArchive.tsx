@@ -5,13 +5,7 @@ import { isValidLang } from "@/types/lang";
 import { ArchiveShell } from "@/components/ArchiveShell";
 import { DevotionCalendar } from "@/components/DevotionCalendar";
 
-type Props = { params: Promise<{ lang: string; year: string }> };
-export async function generateMetadata({ params }: Props) {
-  const { lang, year } = await params;
-  return { title: `${year} ${lang === "ta" ? "வேதாகம தொடர்கள்" : "Devotional Calendar"}`, alternates: { canonical: `/${lang}/${year}`, languages: { en: `/en/${year}`, ta: `/ta/${year}` } } };
-}
-export default async function YearPage({ params }: Props) {
-  const { lang, year } = await params;
+export default async function YearArchive({ lang, year }: { lang: string; year: string }) {
   if (!isValidLang(lang) || year !== String(CONTENT_YEAR)) notFound();
   const data = await getDevotionals();
   const months = MONTHS.map((key, i) => ({ month: i + 1, days: Object.keys(data[key] || {}).map(key => Number(key.replace(/^day/, ""))).filter(day => validDate(+year, i + 1, day)) }));

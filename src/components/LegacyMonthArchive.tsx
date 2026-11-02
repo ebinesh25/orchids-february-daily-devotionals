@@ -9,24 +9,6 @@ type MonthPageProps = {
   params: Promise<LangParams & { month: string }>;
 };
 
-export async function generateMetadata({ params }: MonthPageProps) {
-  const { lang, month } = await params;
-  const monthName = month.charAt(0).toUpperCase() + month.slice(1);
-
-  return {
-    title: lang === "ta"
-      ? `${monthName} வேதாகம தொடர்கள்`
-      : `${monthName} Bible Series`,
-    alternates: {
-      canonical: `/${lang}/${month}`,
-      languages: {
-        'en': `/en/${month}`,
-        'ta': `/ta/${month}`,
-      },
-    },
-  };
-}
-
 export default async function LangMonthPage({ params }: MonthPageProps) {
   const { lang, month } = await params;
 
@@ -101,15 +83,3 @@ export default async function LangMonthPage({ params }: MonthPageProps) {
   );
 }
 
-// Generate static params for all available months and both languages
-export async function generateStaticParams() {
-  const months = await getAvailableMonths();
-  const params: Array<{ lang: string; month: string }> = [];
-
-  for (const month of months) {
-    params.push({ lang: "ta", month });
-    params.push({ lang: "en", month });
-  }
-
-  return params;
-}

@@ -5,11 +5,11 @@ import { LangParams } from "@/types/lang";
 import { isValidLang } from "@/types/lang";
 
 interface PageProps {
-  params: Promise<LangParams & { month: string }>;
+  params: Promise<LangParams & { segment: string }>;
 }
 
 export async function generateMetadata({ params }: PageProps) {
-  const { lang, month } = await params;
+  const { lang, segment: month } = await params;
   const monthName = month.charAt(0).toUpperCase() + month.slice(1);
 
   return {
@@ -27,7 +27,7 @@ export async function generateMetadata({ params }: PageProps) {
 }
 
 export default async function LangMonthTodayPage({ params }: PageProps) {
-  const { lang, month } = await params;
+  const { lang, segment: month } = await params;
 
   // Validate language
   if (!isValidLang(lang)) {
@@ -63,11 +63,11 @@ export default async function LangMonthTodayPage({ params }: PageProps) {
 export async function generateStaticParams() {
   const { getAvailableMonths } = await import("@/lib/data");
   const months = await getAvailableMonths();
-  const params: Array<{ lang: string; month: string }> = [];
+  const params: Array<{ lang: string; segment: string }> = [];
 
   for (const month of months) {
-    params.push({ lang: "ta", month });
-    params.push({ lang: "en", month });
+    params.push({ lang: "ta", segment: month });
+    params.push({ lang: "en", segment: month });
   }
 
   return params;
