@@ -54,10 +54,19 @@ function AudioPlayer({
 }) {
   const [error, setError] = useState(false);
   const [audioAvailable, setAudioAvailable] = useState(false);
+  const [audioReady, setAudioReady] = useState(false);
   const [speed, setSpeed] = useState(1);
   const audioRef = useRef<HTMLAudioElement>(null);
 
   const speeds = [0.5, 0.75, 0.85, 1, 1.25, 1.5, 1.75, 2];
+
+  // Keep audio off the initial critical path; attach its URL after the reader settles.
+  useEffect(() => {
+    setAudioReady(false);
+    if (!src) return;
+    const timer = window.setTimeout(() => setAudioReady(true), 2000);
+    return () => window.clearTimeout(timer);
+  }, [src]);
 
   // Handle audio loaded successfully
   const handleCanPlay = () => {
@@ -153,12 +162,12 @@ function AudioPlayer({
       <audio
         ref={audioRef}
         controls
-        preload="none"
+        preload={audioReady ? "metadata" : "none"}
         className="w-full"
         onCanPlay={handleCanPlay}
         onError={handleError}
       >
-        <source src={src} type="audio/mpeg" />
+        {audioReady && <source src={src} type="audio/mpeg" />}
         {lang === "ta" ? "உங்கள் உலாவி ஆடியோ எலிமன்டை ஆதரிக்கவில்லை." : "Your browser does not support the audio element."}
       </audio>
     </div>
@@ -230,6 +239,25 @@ export default function Reader({ devotional, month, day, days, lang, navigation,
       observer.disconnect();
     };
   }, [month, day, language, track]);
+
+  // Record meaningful reading depth milestones once per page view.
+  useEffect(() => {
+    const sent = new Set<number>();
+    const onScroll = () => {
+      const scrollable = document.documentElement.scrollHeight - window.innerHeight;
+      if (scrollable <= 0) return;
+      const percent = Math.min(100, Math.round((window.scrollY / scrollable) * 100));
+      for (const depth of [25, 50, 75, 100] as const) {
+        if (percent >= depth && !sent.has(depth)) {
+          sent.add(depth);
+          track("reading_scroll", { month, day, lang, depth });
+        }
+      }
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    onScroll();
+    return () => window.removeEventListener("scroll", onScroll);
+  }, [month, day, lang, track]);
 
   // Clean up excessive newlines (more than 2 consecutive newlines)
   const cleanContent = (text: string) => {

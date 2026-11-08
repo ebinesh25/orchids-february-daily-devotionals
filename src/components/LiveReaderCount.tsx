@@ -37,16 +37,19 @@ export function LiveReaderCount({ lang }: { lang: "en" | "ta" }) {
     };
   }, [clientId, heartbeat]);
 
-  if (count === undefined) return null;
-
   return (
-    <div className="mb-5 inline-flex items-center gap-1.5 rounded-full border bg-muted/40 px-3 py-1 text-xs text-muted-foreground" aria-live="polite">
+    // Keep the same footprint while Convex connects so the content below never shifts.
+    <div className="mb-5 flex h-6 items-start">
+      {count === undefined ? (
+        <span className="invisible inline-flex h-6 items-center rounded-full border px-3 text-xs" aria-hidden="true" />
+      ) : <div className="inline-flex h-6 items-center gap-1.5 rounded-full border bg-muted/40 px-3 text-xs text-muted-foreground" aria-live="polite">
       <span className="relative flex h-2 w-2" aria-hidden="true">
         <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-500 opacity-50" />
         <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-600" />
       </span>
       <Users className="h-3.5 w-3.5" aria-hidden="true" />
-      <span>{lang === "ta" ? `இப்போது ${count} பேர் வாசிக்கிறார்கள்` : `${count} ${count === 1 ? "person" : "people"} reading now`}</span>
+      <span className="tabular-nums">{lang === "ta" ? `இப்போது ${count} பேர் வாசிக்கிறார்கள்` : `${count} ${count === 1 ? "person" : "people"} reading now`}</span>
+      </div>}
     </div>
   );
 }

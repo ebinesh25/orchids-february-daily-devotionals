@@ -12,7 +12,13 @@ export type AnalyticsEvent =
   | 'audio_play'
   | 'audio_pause'
   | 'audio_complete'
-  | 'audio_speed_change';
+  | 'audio_speed_change'
+  | 'feature_notification_click'
+  | 'feature_notification_dismiss'
+  | 'share_demo_start'
+  | 'share_demo_step'
+  | 'share_demo_complete'
+  | 'reading_scroll';
 
 /**
  * Payload data for each analytics event type
@@ -63,6 +69,12 @@ export interface AnalyticsEventData {
     from: number;
     to: number;
   };
+  feature_notification_click: { lang: 'en' | 'ta' };
+  feature_notification_dismiss: { lang: 'en' | 'ta' };
+  share_demo_start: { lang: 'en' | 'ta' };
+  share_demo_step: { lang: 'en' | 'ta'; step: 'passage_selected' | 'format_selected'; format?: 'text' | 'image' };
+  share_demo_complete: { lang: 'en' | 'ta'; format: 'text' | 'image' };
+  reading_scroll: { month: string; day: number; lang: 'en' | 'ta'; depth: 25 | 50 | 75 | 100 };
 }
 
 /**

@@ -103,18 +103,22 @@ export function QuoteShare({ children, lang, title, articleUrl }: Props) {
   const shareText = async () => {
     if (!quote) return;
     window.dispatchEvent(new CustomEvent("devotional-share-format", { detail: "text" }));
+    const markShared = () => window.dispatchEvent(new CustomEvent("devotional-share-action", { detail: "text" }));
     const text = makeShareText();
     try {
       if (navigator.share) {
         await navigator.share({ title, text, url: articleLink });
+        markShared();
       } else {
         await navigator.clipboard.writeText(text);
+        markShared();
         toast.success(isTamil ? "வசனமும் இணைப்பும் நகலெடுக்கப்பட்டன" : "Quote and article link copied");
       }
     } catch (error) {
       if (error instanceof Error && error.name === "AbortError") return;
       try {
         await navigator.clipboard.writeText(text);
+        markShared();
         toast.success(isTamil ? "வசனமும் இணைப்பும் நகலெடுக்கப்பட்டன" : "Quote and article link copied");
       } catch {
         toast.error(isTamil ? "பகிர முடியவில்லை" : "Could not share the quote");
@@ -209,6 +213,7 @@ export function QuoteShare({ children, lang, title, articleUrl }: Props) {
       link.click();
       URL.revokeObjectURL(href);
       toast.success(isTamil ? "படம் பதிவிறக்கப்பட்டது" : "Quote image downloaded");
+      window.dispatchEvent(new CustomEvent("devotional-share-action", { detail: "image" }));
     } catch {
       toast.error(isTamil ? "படத்தை உருவாக்க முடியவில்லை" : "Could not create the quote image");
     } finally {
@@ -223,6 +228,7 @@ export function QuoteShare({ children, lang, title, articleUrl }: Props) {
       const file = new File([blob], "daily-devotional-quote.png", { type: "image/png" });
       if (navigator.canShare?.({ files: [file] }) && navigator.share) {
         await navigator.share({ title, text: `${title}\n${articleLink}`, url: articleLink, files: [file] });
+        window.dispatchEvent(new CustomEvent("devotional-share-action", { detail: "image" }));
       } else {
         const href = URL.createObjectURL(blob);
         const link = document.createElement("a");
@@ -231,6 +237,7 @@ export function QuoteShare({ children, lang, title, articleUrl }: Props) {
         link.click();
         URL.revokeObjectURL(href);
         await navigator.clipboard.writeText(`${title}\n${articleLink}`);
+        window.dispatchEvent(new CustomEvent("devotional-share-action", { detail: "image" }));
         toast.success(isTamil ? "படம் பதிவிறக்கப்பட்டது; இணைப்பு நகலெடுக்கப்பட்டது" : "Image downloaded and article link copied");
       }
     } catch (error) {
