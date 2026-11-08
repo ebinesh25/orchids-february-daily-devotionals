@@ -21,6 +21,9 @@ import dynamic from "next/dynamic";
 import { DayPicker } from "@/components/DayPicker";
 import { useAnalytics, type AnalyticsEventData } from "@/lib/analytics";
 import { getAlternateLang } from "@/types/lang";
+import { LiveReaderCount } from "@/components/LiveReaderCount";
+import { QuoteShare } from "@/components/QuoteShare";
+import { ShareFeatureNotice } from "@/components/ShareFeatureNotice";
 
 
 // Dynamically load non-critical client overlays to eliminate main-thread blocking (TBT)
@@ -237,6 +240,11 @@ export default function Reader({ devotional, month, day, days, lang, navigation,
     language === "english" ? devotional.english : devotional.tamil;
   const title = langData.title;
   const content = cleanContent(langData.data);
+  const openingVerse = (content.split(/\n\s*\n/)[0] ?? "")
+    .replace(/\*\*(.*?)\*\*/gs, "$1")
+    .replace(/\*(.*?)\*/gs, "$1")
+    .replace(/^#+\s*/, "")
+    .trim();
 
   // Audio file URL directly from Convex storage
   const audioSrc = langData.audioUrl || null;
@@ -301,6 +309,7 @@ export default function Reader({ devotional, month, day, days, lang, navigation,
           </div>
         </div>
       </header>
+      <ShareFeatureNotice lang={lang} />
 
       {/* Content */}
       <main className="container mx-auto max-w-2xl px-4 py-8 md:py-12">
@@ -319,19 +328,29 @@ export default function Reader({ devotional, month, day, days, lang, navigation,
           <ShareDropdown
             url={dayPath(lang, month, day)}
             title={title}
+            shareCard={{
+              verse: openingVerse,
+              englishUrl: dayPath("en", month, day),
+              tamilUrl: dayPath("ta", month, day),
+              lang,
+            }}
           />
         </div>
+
+        <LiveReaderCount lang={lang} />
 
         {/* Audio Player */}
         <AudioPlayer src={audioSrc} lang={lang} track={track} month={month} day={day} />
 
-        <article
-          className={`reading-content max-w-none text-left ${fontSize} ${lang === "ta" ? "lang-ta font-sans" : "lang-en font-serif"}`}
-        >
-          <div className="whitespace-normal">
-            <ReactMarkdown>{content}</ReactMarkdown>
-          </div>
-        </article>
+        <QuoteShare lang={lang} title={title} articleUrl={dayPath(lang, month, day)}>
+          <article
+            className={`reading-content max-w-none text-left ${fontSize} ${lang === "ta" ? "lang-ta font-sans" : "lang-en font-serif"}`}
+          >
+            <div className="whitespace-normal">
+              <ReactMarkdown>{content}</ReactMarkdown>
+            </div>
+          </article>
+        </QuoteShare>
 
         {/* Day Picker */}
         <div className="mt-12 border-t pt-8">

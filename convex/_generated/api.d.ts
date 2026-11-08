@@ -9,6 +9,7 @@
  */
 
 import type * as devotionals from "../devotionals.js";
+import type * as presence from "../presence.js";
 
 import type {
   ApiFromModules,
@@ -18,6 +19,7 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   devotionals: typeof devotionals;
+  presence: typeof presence;
 }>;
 
 /**

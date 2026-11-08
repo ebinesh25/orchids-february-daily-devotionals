@@ -16,4 +16,10 @@ export default defineSchema({
   })
     .index("by_month_day", ["month", "day"])
     .index("by_month", ["month"]),
+  readerPresence: defineTable({
+    clientId: v.string(),
+    lastSeen: v.number(),
+  })
+    .index("by_client_id", ["clientId"])
+    .index("by_last_seen", ["lastSeen"]),
 });
