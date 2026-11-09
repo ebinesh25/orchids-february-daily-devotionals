@@ -1,10 +1,16 @@
 "use client";
 
 import { useEffect, useRef, useState, type MouseEvent, type ReactNode } from "react";
-import { Download, Image as ImageIcon, Link2, Share2 } from "lucide-react";
+import { Download, Ellipsis, Image as ImageIcon, Link2, Share2 } from "lucide-react";
 import QRCode from "qrcode";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   Dialog,
   DialogContent,
@@ -73,7 +79,7 @@ export function QuoteShare({ children, lang, title, articleUrl }: Props) {
       if (touchSelecting) return;
       if (selectionTimer) clearTimeout(selectionTimer);
       // Let Android/iOS finish moving the selection handles before reading its range.
-      selectionTimer = setTimeout(() => updateSelection(true), 400);
+      selectionTimer = setTimeout(() => updateSelection(true), 120);
     };
     const onSelectionChange = () => {
       if (!touchSelecting) scheduleTouchSelection();
@@ -88,12 +94,18 @@ export function QuoteShare({ children, lang, title, articleUrl }: Props) {
     };
     const onMouseUp = () => updateSelection(false);
     const onKeyUp = () => updateSelection(false);
+    const onContextMenu = () => {
+      // Long-press selection on mobile settles just after the native menu event.
+      if (selectionTimer) clearTimeout(selectionTimer);
+      selectionTimer = setTimeout(() => updateSelection(true), 80);
+    };
 
     document.addEventListener("mouseup", onMouseUp);
     document.addEventListener("keyup", onKeyUp);
     document.addEventListener("touchstart", onTouchStart, { passive: true });
     document.addEventListener("touchend", onTouchEnd);
     document.addEventListener("selectionchange", onSelectionChange);
+    document.addEventListener("contextmenu", onContextMenu);
     return () => {
       if (selectionTimer) clearTimeout(selectionTimer);
       document.removeEventListener("mouseup", onMouseUp);
@@ -101,6 +113,7 @@ export function QuoteShare({ children, lang, title, articleUrl }: Props) {
       document.removeEventListener("touchstart", onTouchStart);
       document.removeEventListener("touchend", onTouchEnd);
       document.removeEventListener("selectionchange", onSelectionChange);
+      document.removeEventListener("contextmenu", onContextMenu);
     };
   }, []);
 
@@ -309,7 +322,6 @@ export function QuoteShare({ children, lang, title, articleUrl }: Props) {
         ref={contentRef}
         className="reading-share-content"
         onClick={handleTapToSelect}
-        onContextMenu={(event) => event.preventDefault()}
       >
         {children}
       </div>
@@ -329,6 +341,21 @@ export function QuoteShare({ children, lang, title, articleUrl }: Props) {
           }}>
             <ImageIcon className="h-4 w-4" />{isTamil ? "படமாக" : "Image"}
           </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button size="icon" variant="ghost" className="h-9 w-9" aria-label={isTamil ? "வாசிப்பு அணுகல்தன்மை அமைப்புகள்" : "Reading accessibility settings"} title={isTamil ? "அணுகல்தன்மை அமைப்புகள்" : "Accessibility settings"}>
+                <Ellipsis className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" side="top" className="z-[80]">
+              <DropdownMenuItem onSelect={() => requestAnimationFrame(() => document.getElementById("font-button")?.click())}>
+                {isTamil ? "எழுத்து அளவு" : "Text size"}
+              </DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => requestAnimationFrame(() => document.getElementById("theme-button")?.click())}>
+                {isTamil ? "திரைத் தோற்றம்" : "Appearance"}
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       )}
 
