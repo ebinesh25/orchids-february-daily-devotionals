@@ -8,6 +8,7 @@ const nextConfig: NextConfig = {
   distDir: process.env.NODE_ENV === "development" ? ".next-dev" : ".next",
   // Let middleware redirect legacy trailing-slash links directly to their date URL.
   skipTrailingSlashRedirect: true,
+  allowedDevOrigins: ["https://delight-soviet-phys-administrator.trycloudflare.com"],
   images: {
     remotePatterns: [
       {

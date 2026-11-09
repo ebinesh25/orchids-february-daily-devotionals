@@ -77,7 +77,28 @@ export function ShareDropdown({ url, title = "Bible Series", shareCard }: ShareD
     }
   };
 
-  const shareToWhatsApp = () => {
+  const shareToWhatsApp = async () => {
+    if (shareCard) {
+      setBusy(true);
+      try {
+        const blob = await createCard();
+        const file = new File([blob], "daily-devotional.png", { type: "image/png" });
+        if (navigator.share && navigator.canShare?.({ files: [file] })) {
+          await navigator.share({ files: [file], title, text: shareCaption() });
+          track("share_click", { platform: "whatsapp" });
+          return;
+        }
+        downloadBlob(blob);
+        toast.info("Image downloaded. Attach it in WhatsApp; the devotional text and links are ready there.");
+      } catch (error) {
+        if (error instanceof Error && error.name !== "AbortError") {
+          toast.error("Could not create the devotional image");
+          return;
+        }
+      } finally {
+        setBusy(false);
+      }
+    }
     const text = shareCard
       ? `${title}\n\n${shareCard.verse}\n\n${articleLinksText()}`
       : `Check out this bible series: ${title}\n${shareUrl()}`;
@@ -211,12 +232,12 @@ export function ShareDropdown({ url, title = "Bible Series", shareCard }: ShareD
           setCardOpen(isOpen);
           window.dispatchEvent(new CustomEvent("devotional-share-dialog-state", { detail: isOpen }));
         }}>
-          <DialogContent className="max-h-[92dvh] overflow-y-auto sm:max-w-lg">
+          <DialogContent className="max-h-[92dvh] w-[calc(100%-1.25rem)] gap-3 overflow-y-auto p-4 sm:w-full sm:max-w-lg sm:gap-4 sm:p-6">
             <DialogHeader>
               <DialogTitle>Share this devotional</DialogTitle>
               <DialogDescription>The image includes the title, opening verse, and a QR link. WhatsApp text includes English and Tamil article links. Facebook and Instagram use your device’s share options when available; otherwise download the image to upload it manually.</DialogDescription>
             </DialogHeader>
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-3 gap-1.5 sm:gap-2">
               {SHARE_BACKGROUNDS.map((src, index) => (
                 <button key={src} type="button" onClick={() => setBackgroundIndex(index)} aria-pressed={backgroundIndex === index} className={`overflow-hidden rounded-lg border-2 ${backgroundIndex === index ? "border-primary" : "border-transparent"}`}>
                   <img src={src} alt={`Nature background ${index + 1}`} className="aspect-[4/3] w-full object-cover" />
@@ -224,13 +245,13 @@ export function ShareDropdown({ url, title = "Bible Series", shareCard }: ShareD
               ))}
             </div>
             <div className="relative overflow-hidden rounded-xl bg-slate-900">
-              <img src={SHARE_BACKGROUNDS[backgroundIndex]} alt="" className="aspect-[4/5] max-h-[42dvh] w-full object-cover opacity-55" />
-              <div className="absolute inset-0 flex flex-col justify-center gap-5 bg-gradient-to-b from-slate-950/40 via-slate-950/50 to-slate-950/85 p-7 text-white">
-                <p className="text-xs font-semibold tracking-widest text-white/75">BIBLE SERIES · DAILY DEVOTIONAL</p>
-                <h2 className={`font-serif text-2xl font-semibold leading-snug ${shareCard.lang === "ta" ? "lang-ta font-sans" : ""}`}>{title}</h2>
-                <blockquote className={`border-l-2 border-white/70 pl-4 font-serif text-lg leading-relaxed ${shareCard.lang === "ta" ? "lang-ta font-sans" : ""}`}>{shareCard.verse}</blockquote>
-                <div className="mt-auto flex items-center gap-3 border-t border-white/30 pt-3">
-                  {qrImage && <img src={qrImage} alt="QR code linking to this devotional" className="h-16 w-16 rounded bg-white p-1" />}
+              <img src={SHARE_BACKGROUNDS[backgroundIndex]} alt="" className="aspect-[4/3] max-h-[26dvh] w-full object-cover opacity-55 sm:aspect-[4/5] sm:max-h-[42dvh]" />
+              <div className="absolute inset-0 flex flex-col justify-center gap-2 bg-gradient-to-b from-slate-950/40 via-slate-950/50 to-slate-950/85 p-3 text-white sm:gap-5 sm:p-7">
+                <p className="text-[9px] font-semibold tracking-widest text-white/75 sm:text-xs">BIBLE SERIES · DAILY DEVOTIONAL</p>
+                <h2 className={`line-clamp-2 font-serif text-base font-semibold leading-snug sm:text-2xl ${shareCard.lang === "ta" ? "lang-ta font-sans" : ""}`}>{title}</h2>
+                <blockquote className={`line-clamp-3 border-l-2 border-white/70 pl-2 font-serif text-sm leading-snug sm:line-clamp-none sm:pl-4 sm:text-lg sm:leading-relaxed ${shareCard.lang === "ta" ? "lang-ta font-sans" : ""}`}>{shareCard.verse}</blockquote>
+                <div className="mt-auto flex items-center gap-2 border-t border-white/30 pt-2 sm:gap-3 sm:pt-3">
+                  {qrImage && <img src={qrImage} alt="QR code linking to this devotional" className="h-10 w-10 rounded bg-white p-1 sm:h-16 sm:w-16" />}
                   <div className="min-w-0 text-xs text-white/85">
                     <p>Read the full devotional</p>
                     <p className="mt-1 break-all">{url}</p>
@@ -239,9 +260,9 @@ export function ShareDropdown({ url, title = "Bible Series", shareCard }: ShareD
               </div>
             </div>
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-              <Button variant="outline" onClick={shareToWhatsApp}>WhatsApp</Button>
-              <Button variant="outline" onClick={() => shareCardFile("facebook")}>Facebook</Button>
-              <Button variant="outline" onClick={() => shareCardFile("instagram")}>Instagram</Button>
+              <Button variant="outline" onClick={shareToWhatsApp} disabled={busy}>WhatsApp</Button>
+              <Button variant="outline" onClick={() => shareCardFile("facebook")} disabled={busy}>Facebook</Button>
+              <Button variant="outline" onClick={() => shareCardFile("instagram")} disabled={busy}>Instagram</Button>
               <Button onClick={downloadCard} disabled={busy} className="gap-2"><Download className="h-4 w-4" />Image</Button>
             </div>
             <Button variant="ghost" onClick={copyToClipboard} className="gap-2"><Check className="h-4 w-4" />Copy English + Tamil links</Button>

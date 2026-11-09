@@ -30,6 +30,7 @@ export function QuoteShare({ children, lang, title, articleUrl }: Props) {
   const contentRef = useRef<HTMLDivElement>(null);
   const [quote, setQuote] = useState("");
   const [position, setPosition] = useState({ x: 0, y: 0 });
+  const [touchToolbar, setTouchToolbar] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [backgroundIndex, setBackgroundIndex] = useState(0);
   const [busy, setBusy] = useState(false);
@@ -47,7 +48,10 @@ export function QuoteShare({ children, lang, title, articleUrl }: Props) {
   }, [articleLink]);
 
   useEffect(() => {
-    const updateSelection = () => {
+    let selectionTimer: ReturnType<typeof setTimeout> | undefined;
+    let touchSelecting = false;
+
+    const updateSelection = (fromTouch = false) => {
       const selection = window.getSelection();
       const selectedText = selection?.toString().trim() ?? "";
       if (!selection || !selectedText || !contentRef.current?.contains(selection.anchorNode)) {
@@ -61,16 +65,42 @@ export function QuoteShare({ children, lang, title, articleUrl }: Props) {
         x: Math.max(120, Math.min(rect.left + rect.width / 2, window.innerWidth - 120)),
         y: Math.max(12, rect.top),
       });
+      setTouchToolbar(fromTouch || window.matchMedia("(pointer: coarse)").matches);
       window.dispatchEvent(new Event("devotional-share-selection"));
     };
 
-    document.addEventListener("mouseup", updateSelection);
-    document.addEventListener("keyup", updateSelection);
-    document.addEventListener("touchend", updateSelection);
+    const scheduleTouchSelection = () => {
+      if (touchSelecting) return;
+      if (selectionTimer) clearTimeout(selectionTimer);
+      // Let Android/iOS finish moving the selection handles before reading its range.
+      selectionTimer = setTimeout(() => updateSelection(true), 400);
+    };
+    const onSelectionChange = () => {
+      if (!touchSelecting) scheduleTouchSelection();
+    };
+    const onTouchStart = () => {
+      touchSelecting = true;
+      if (selectionTimer) clearTimeout(selectionTimer);
+    };
+    const onTouchEnd = () => {
+      touchSelecting = false;
+      scheduleTouchSelection();
+    };
+    const onMouseUp = () => updateSelection(false);
+    const onKeyUp = () => updateSelection(false);
+
+    document.addEventListener("mouseup", onMouseUp);
+    document.addEventListener("keyup", onKeyUp);
+    document.addEventListener("touchstart", onTouchStart, { passive: true });
+    document.addEventListener("touchend", onTouchEnd);
+    document.addEventListener("selectionchange", onSelectionChange);
     return () => {
-      document.removeEventListener("mouseup", updateSelection);
-      document.removeEventListener("keyup", updateSelection);
-      document.removeEventListener("touchend", updateSelection);
+      if (selectionTimer) clearTimeout(selectionTimer);
+      document.removeEventListener("mouseup", onMouseUp);
+      document.removeEventListener("keyup", onKeyUp);
+      document.removeEventListener("touchstart", onTouchStart);
+      document.removeEventListener("touchend", onTouchEnd);
+      document.removeEventListener("selectionchange", onSelectionChange);
     };
   }, []);
 
@@ -79,12 +109,17 @@ export function QuoteShare({ children, lang, title, articleUrl }: Props) {
     if (!mobileInput) return;
     const target = event.target;
     if (!(target instanceof HTMLElement) || target.closest("a, button")) return;
+    // A long press produces a real browser selection before its synthetic click.
+    // Keep that exact range instead of replacing it with the whole paragraph.
+    const nativeSelection = window.getSelection()?.toString().trim();
+    if (nativeSelection) return;
     const block = target.closest("p, li, blockquote");
     if (!block || !contentRef.current?.contains(block)) return;
     const selectedText = block.textContent?.trim() ?? "";
     if (!selectedText) return;
     const rect = block.getBoundingClientRect();
     setQuote(selectedText.slice(0, 500));
+    setTouchToolbar(true);
     setPosition({
       x: Math.max(120, Math.min(rect.left + rect.width / 2, window.innerWidth - 120)),
       y: Math.max(12, rect.top),
@@ -98,7 +133,16 @@ export function QuoteShare({ children, lang, title, articleUrl }: Props) {
     window.dispatchEvent(new CustomEvent("devotional-share-image-dialog", { detail: isOpen }));
   };
 
-  const makeShareText = () => `${quote}${quote.length >= 500 ? "…" : ""}\n\n${title}\n${articleLink}`;
+  const trackedArticleLink = (platform: "whatsapp" | "facebook" | "instagram" | "download") => {
+    const tracked = new URL(articleLink);
+    tracked.searchParams.set("utm_source", platform);
+    tracked.searchParams.set("utm_medium", "shared_image");
+    tracked.searchParams.set("utm_campaign", "selected_quote");
+    return tracked.href;
+  };
+
+  const makeShareText = (platform: "whatsapp" | "facebook" | "instagram" | "download") =>
+    `${quote}${quote.length >= 500 ? "…" : ""}\n\n${title}\n${trackedArticleLink(platform)}`;
 
   const shareText = async () => {
     if (!quote) return;
@@ -126,7 +170,7 @@ export function QuoteShare({ children, lang, title, articleUrl }: Props) {
     }
   };
 
-  const renderCard = async () => {
+  const renderCard = async (platform: "whatsapp" | "facebook" | "instagram" | "download") => {
     const width = 1080;
     const padding = 92;
     const canvas = document.createElement("canvas");
@@ -184,9 +228,11 @@ export function QuoteShare({ children, lang, title, articleUrl }: Props) {
     }
 
     const footerY = 1120;
-    if (qrImage) {
+    const trackedUrl = trackedArticleLink(platform);
+    const platformQr = await QRCode.toDataURL(trackedUrl, { width: 180, margin: 1, color: { dark: "#102027", light: "#ffffff" } });
+    if (platformQr) {
       const qr = new Image();
-      qr.src = qrImage;
+      qr.src = platformQr;
       await qr.decode();
       ctx.drawImage(qr, padding, footerY - 30, 130, 130);
     }
@@ -196,7 +242,7 @@ export function QuoteShare({ children, lang, title, articleUrl }: Props) {
     ctx.fillText(title.slice(0, 48), footerTextX, footerY);
     ctx.fillStyle = "rgba(255,255,255,.82)";
     ctx.font = "500 24px Arial, sans-serif";
-    ctx.fillText(articleLink.slice(0, 60), footerTextX, footerY + 50);
+    ctx.fillText(trackedUrl.slice(0, 68), footerTextX, footerY + 50);
     return await new Promise<Blob>((resolve, reject) => {
       canvas.toBlob((blob) => blob ? resolve(blob) : reject(new Error("Could not create image")), "image/png");
     });
@@ -205,7 +251,7 @@ export function QuoteShare({ children, lang, title, articleUrl }: Props) {
   const downloadImage = async () => {
     setBusy(true);
     try {
-      const blob = await renderCard();
+      const blob = await renderCard("download");
       const href = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = href;
@@ -221,13 +267,13 @@ export function QuoteShare({ children, lang, title, articleUrl }: Props) {
     }
   };
 
-  const shareImage = async () => {
+  const shareImage = async (platform: "whatsapp" | "facebook" | "instagram") => {
     setBusy(true);
     try {
-      const blob = await renderCard();
+      const blob = await renderCard(platform);
       const file = new File([blob], "daily-devotional-quote.png", { type: "image/png" });
       if (navigator.canShare?.({ files: [file] }) && navigator.share) {
-        await navigator.share({ title, text: `${title}\n${articleLink}`, url: articleLink, files: [file] });
+        await navigator.share({ title, text: makeShareText(platform), url: trackedArticleLink(platform), files: [file] });
         window.dispatchEvent(new CustomEvent("devotional-share-action", { detail: "image" }));
       } else {
         const href = URL.createObjectURL(blob);
@@ -236,9 +282,17 @@ export function QuoteShare({ children, lang, title, articleUrl }: Props) {
         link.download = "daily-devotional-quote.png";
         link.click();
         URL.revokeObjectURL(href);
-        await navigator.clipboard.writeText(`${title}\n${articleLink}`);
+        const shareText = makeShareText(platform);
+        try { await navigator.clipboard.writeText(shareText); } catch { /* Opening the app remains useful without clipboard access. */ }
+        if (platform === "whatsapp") {
+          window.location.href = `https://wa.me/?text=${encodeURIComponent(shareText)}`;
+        } else if (platform === "facebook") {
+          window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(trackedArticleLink(platform))}&quote=${encodeURIComponent(shareText)}`, "_blank", "noopener,noreferrer");
+        } else {
+          window.open("https://www.instagram.com/", "_blank", "noopener,noreferrer");
+        }
         window.dispatchEvent(new CustomEvent("devotional-share-action", { detail: "image" }));
-        toast.success(isTamil ? "படம் பதிவிறக்கப்பட்டது; இணைப்பு நகலெடுக்கப்பட்டது" : "Image downloaded and article link copied");
+        toast.success(isTamil ? "படம் பதிவிறக்கப்பட்டது; பகிர்வு இணைப்புடன் உரை நகலெடுக்கப்பட்டது" : "Image downloaded and tracked caption copied. Attach the image in the sharing app.");
       }
     } catch (error) {
       if (error instanceof Error && error.name !== "AbortError") {
@@ -251,11 +305,18 @@ export function QuoteShare({ children, lang, title, articleUrl }: Props) {
 
   return (
     <>
-      <div ref={contentRef} onClick={handleTapToSelect}>{children}</div>
+      <div
+        ref={contentRef}
+        className="reading-share-content"
+        onClick={handleTapToSelect}
+        onContextMenu={(event) => event.preventDefault()}
+      >
+        {children}
+      </div>
       {quote && !dialogOpen && (
         <div
-          className="fixed z-[60] flex -translate-x-1/2 -translate-y-full items-center gap-1 rounded-xl border bg-popover p-1.5 text-popover-foreground shadow-lg"
-          style={{ left: position.x, top: position.y - 12 }}
+          className={`fixed z-[70] flex -translate-x-1/2 items-center gap-1 rounded-xl border bg-popover p-1.5 text-popover-foreground shadow-lg ${touchToolbar ? "bottom-[calc(env(safe-area-inset-bottom,0px)+5.75rem)]" : "-translate-y-full"}`}
+          style={touchToolbar ? { left: "50%" } : { left: position.x, top: position.y - 12 }}
           role="toolbar"
           aria-label={isTamil ? "தேர்ந்தெடுத்த உரையைப் பகிர்" : "Share selected text"}
         >
@@ -272,26 +333,26 @@ export function QuoteShare({ children, lang, title, articleUrl }: Props) {
       )}
 
       <Dialog open={dialogOpen} onOpenChange={setImageDialogOpen}>
-        <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-lg">
+        <DialogContent className="max-h-[92dvh] w-[calc(100%-1.25rem)] gap-3 overflow-y-auto p-4 sm:w-full sm:max-w-lg sm:gap-4 sm:p-6">
           <DialogHeader>
             <DialogTitle>{isTamil ? "வசனப் படத்தைப் பகிருங்கள்" : "Share a quote image"}</DialogTitle>
             <DialogDescription>{isTamil ? "இயற்கைப் பின்னணியைத் தேர்ந்தெடுத்து பதிவிறக்கவும் அல்லது பகிரவும். கட்டுரையின் இணைப்பு படத்திலும் பகிர்வு உரையிலும் சேர்க்கப்படும்." : "Choose a nature background, then download or share. The article link appears on the image and in the share text."}</DialogDescription>
           </DialogHeader>
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-3 gap-1.5 sm:gap-2">
             {BACKGROUNDS.map((background, index) => (
               <button key={background.src} type="button" onClick={() => setBackgroundIndex(index)} aria-pressed={backgroundIndex === index} className={`overflow-hidden rounded-lg border-2 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${backgroundIndex === index ? "border-primary" : "border-transparent"}`}>
                 <img src={background.src} alt={background.name} className="aspect-[4/3] w-full object-cover" />
-                <span className="block truncate px-2 py-1 text-xs">{background.name}</span>
+                <span className="block truncate px-1.5 py-1 text-[10px] sm:px-2 sm:text-xs">{background.name}</span>
               </button>
             ))}
           </div>
           <div className="relative overflow-hidden rounded-xl bg-slate-900">
-            <img src={BACKGROUNDS[backgroundIndex].src} alt="" className="aspect-[4/5] max-h-[38dvh] w-full object-cover opacity-55" />
-            <div className="absolute inset-0 flex flex-col justify-center gap-4 bg-gradient-to-b from-slate-950/30 via-slate-950/55 to-slate-950/80 p-6 text-white">
-              <p className="text-xs font-semibold tracking-widest text-white/75">BIBLE SERIES · DAILY DEVOTIONAL</p>
-              <blockquote className="line-clamp-7 border-l-2 border-white/70 pl-4 font-serif text-lg leading-relaxed">{quote}{quote.length >= 500 ? "…" : ""}</blockquote>
-              <div className="mt-auto flex items-center gap-3 border-t border-white/30 pt-3 text-xs text-white/85">
-                {qrImage && <img src={qrImage} alt="QR code linking to this devotional" className="h-16 w-16 rounded bg-white p-1" />}
+            <img src={BACKGROUNDS[backgroundIndex].src} alt="" className="aspect-[4/3] max-h-[26dvh] w-full object-cover opacity-55 sm:aspect-[4/5] sm:max-h-[38dvh]" />
+            <div className="absolute inset-0 flex flex-col justify-center gap-2 bg-gradient-to-b from-slate-950/30 via-slate-950/55 to-slate-950/80 p-3 text-white sm:gap-4 sm:p-6">
+              <p className="text-[9px] font-semibold tracking-widest text-white/75 sm:text-xs">BIBLE SERIES · DAILY DEVOTIONAL</p>
+              <blockquote className="line-clamp-4 border-l-2 border-white/70 pl-2 font-serif text-sm leading-snug sm:line-clamp-7 sm:pl-4 sm:text-lg sm:leading-relaxed">{quote}{quote.length >= 500 ? "…" : ""}</blockquote>
+              <div className="mt-auto flex items-center gap-2 border-t border-white/30 pt-2 text-[10px] text-white/85 sm:gap-3 sm:pt-3 sm:text-xs">
+                {qrImage && <img src={qrImage} alt="QR code linking to this devotional" className="h-10 w-10 rounded bg-white p-1 sm:h-16 sm:w-16" />}
                 <div className="min-w-0">
                   <p className="line-clamp-1 font-medium">{title}</p>
                   <p className="mt-1 flex items-center gap-1"><Link2 className="h-3 w-3 shrink-0" /><span className="break-all">{articleUrl}</span></p>
@@ -299,9 +360,11 @@ export function QuoteShare({ children, lang, title, articleUrl }: Props) {
               </div>
             </div>
           </div>
-          <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-            <Button variant="outline" onClick={downloadImage} disabled={busy} className="gap-2"><Download className="h-4 w-4" />{isTamil ? "பதிவிறக்கு" : "Download image"}</Button>
-            <Button onClick={shareImage} disabled={busy} className="gap-2"><Share2 className="h-4 w-4" />{busy ? (isTamil ? "தயாராகிறது…" : "Preparing…") : (isTamil ? "பகிர்" : "Share image")}</Button>
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+            <Button variant="outline" onClick={() => shareImage("whatsapp")} disabled={busy}>WhatsApp</Button>
+            <Button variant="outline" onClick={() => shareImage("facebook")} disabled={busy}>Facebook</Button>
+            <Button variant="outline" onClick={() => shareImage("instagram")} disabled={busy}>Instagram</Button>
+            <Button onClick={downloadImage} disabled={busy} className="gap-2"><Download className="h-4 w-4" />{busy ? (isTamil ? "தயாராகிறது…" : "Preparing…") : (isTamil ? "பதிவிறக்கு" : "Download")}</Button>
           </div>
         </DialogContent>
       </Dialog>
