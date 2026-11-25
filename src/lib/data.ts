@@ -2,6 +2,7 @@ import { unstable_cache } from "next/cache";
 import { CONTENT_YEAR, MONTHS, monthNumber, validDate, type ReadingNavigation } from "./dates";
 import { convexClient } from "./convex-client";
 import { api } from "../../convex/_generated/api";
+import novemberData from "../../public/data/nov.json";
 
 export interface DevotionalContent {
   title: string;
@@ -25,6 +26,8 @@ export interface MonthData {
  * Keeps pages and data fast while automatically checking Convex DB periodically.
  */
 export const CACHE_REVALIDATE_SECONDS = 3600;
+
+const NOVEMBER_DATA = novemberData as MonthData["nov"];
 
 /**
  * Normalize month name to three-letter abbreviation
@@ -67,10 +70,14 @@ export const getDevotionals = unstable_cache(
   async (): Promise<MonthData> => {
     try {
       const data = await convexClient.query(api.devotionals.getAllDevotionals, {});
-      return data as MonthData;
+      const archive = data as MonthData;
+      return {
+        ...archive,
+        nov: { ...NOVEMBER_DATA, ...(archive.nov || {}) },
+      };
     } catch (error) {
       console.error("Error fetching devotionals from Convex:", error);
-      return {};
+      return { nov: NOVEMBER_DATA };
     }
   },
   ["all-devotionals"],
@@ -92,7 +99,11 @@ export const getDevotional = unstable_cache(
         day,
       });
 
-      if (!doc) return null;
+      if (!doc) {
+        if (normalizedMonth !== "nov") return null;
+        const fallback = NOVEMBER_DATA[`day${day}`];
+        return fallback ? { devotional: fallback, dayNum: day } : null;
+      }
 
       const devotional: Devotional = {
         english: {
@@ -110,6 +121,10 @@ export const getDevotional = unstable_cache(
       return { devotional, dayNum: day };
     } catch (error) {
       console.error(`Error fetching devotional for ${month} day ${day} from Convex:`, error);
+      if (normalizedMonth === "nov") {
+        const fallback = NOVEMBER_DATA[`day${day}`];
+        return fallback ? { devotional: fallback, dayNum: day } : null;
+      }
       return null;
     }
   },
@@ -127,9 +142,14 @@ export const getAllDaysForMonth = unstable_cache(
       const days = await convexClient.query(api.devotionals.getDaysForMonth, {
         month: normalizedMonth,
       });
-      return days;
+      if (normalizedMonth !== "nov") return days;
+      return [...new Set([...days, ...Object.keys(NOVEMBER_DATA).map((key) => Number(key.slice(3)))])]
+        .sort((a, b) => a - b);
     } catch (error) {
       console.error(`Error fetching days for ${month} from Convex:`, error);
+      if (normalizedMonth === "nov") {
+        return Object.keys(NOVEMBER_DATA).map((key) => Number(key.slice(3))).sort((a, b) => a - b);
+      }
       return [];
     }
   },
@@ -144,10 +164,10 @@ export const getAvailableMonths = unstable_cache(
   async (): Promise<string[]> => {
     try {
       const months = await convexClient.query(api.devotionals.getAvailableMonths, {});
-      return months;
+      return [...new Set([...months, "nov"])];
     } catch (error) {
       console.error("Error fetching available months from Convex:", error);
-      return [];
+      return ["nov"];
     }
   },
   ["available-months"],
@@ -165,7 +185,7 @@ export const getAllDevotionalsForMonth = unstable_cache(
         month: normalizedMonth,
       });
 
-      return docs.map((doc) => ({
+      const databaseReadings = docs.map((doc) => ({
         day: doc.day,
         devotional: {
           english: {
@@ -180,8 +200,22 @@ export const getAllDevotionalsForMonth = unstable_cache(
           },
         },
       }));
+      if (normalizedMonth !== "nov") return databaseReadings;
+
+      const readingsByDay = new Map<number, { day: number; devotional: Devotional }>();
+      for (const [key, devotional] of Object.entries(NOVEMBER_DATA)) {
+        const day = Number(key.slice(3));
+        readingsByDay.set(day, { day, devotional });
+      }
+      for (const reading of databaseReadings) readingsByDay.set(reading.day, reading);
+      return [...readingsByDay.values()].sort((a, b) => a.day - b.day);
     } catch (error) {
       console.error(`Error fetching devotionals for ${month} from Convex:`, error);
+      if (normalizedMonth === "nov") {
+        return Object.entries(NOVEMBER_DATA)
+          .map(([key, devotional]) => ({ day: Number(key.slice(3)), devotional }))
+          .sort((a, b) => a.day - b.day);
+      }
       return [];
     }
   },

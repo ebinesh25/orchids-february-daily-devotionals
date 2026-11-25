@@ -20,6 +20,7 @@ export default async function DayPage({ params }: Props) {
   const devotional = archive[key]?.[`day${+day}`];
   if (!devotional) notFound();
   const days = Object.keys(archive[key]).map(key => Number(key.replace(/^day/, ""))).sort((a, b) => a - b);
+  const monthReadings = Object.entries(archive[key]).map(([key, devotional]) => ({ day: Number(key.replace(/^day/, "")), devotional }));
   const navigation = await getReadingNavigation(key, +day, archive);
-  return <Reader devotional={devotional} month={key} day={+day} days={days.filter(d => validDate(+year, +month, d))} lang={lang} navigation={navigation} />;
+  return <Reader devotional={devotional} monthReadings={monthReadings} month={key} day={+day} days={days.filter(d => validDate(+year, +month, d))} lang={lang} navigation={navigation} />;
 }

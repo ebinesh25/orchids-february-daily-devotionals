@@ -70,6 +70,7 @@ export default async function LangHome({ params }: LangPageProps) {
       {/* Today's Bible Series */}
       <Reader
         devotional={todayData?.devotional || devotionals[0]?.devotional}
+        monthReadings={devotionals}
         month={monthData}
         day={dayData}
         days={days}

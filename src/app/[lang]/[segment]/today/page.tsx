@@ -1,4 +1,4 @@
-import { getDevotional, getAllDaysForMonth, normalizeMonthName } from "@/lib/data";
+import { getDevotional, getAllDaysForMonth, getAllDevotionalsForMonth, normalizeMonthName } from "@/lib/data";
 import Reader from "@/components/Reader";
 import { notFound } from "next/navigation";
 import { LangParams } from "@/types/lang";
@@ -47,10 +47,12 @@ export default async function LangMonthTodayPage({ params }: PageProps) {
   }
 
   const days = await getAllDaysForMonth(normalizedMonth);
+  const monthReadings = await getAllDevotionalsForMonth(normalizedMonth);
 
   return (
     <Reader
       devotional={result.devotional}
+      monthReadings={monthReadings}
       month={month}
       day={result.dayNum}
       days={days}

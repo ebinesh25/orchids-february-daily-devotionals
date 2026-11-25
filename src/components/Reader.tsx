@@ -12,7 +12,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Type, Languages, Volume2, Gauge } from "lucide-react";
+import { Type, Languages, Volume2, Gauge, Play, RefreshCw } from "lucide-react";
 import { ThemeMenu } from "@/components/ThemeMenu";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -21,9 +21,9 @@ import dynamic from "next/dynamic";
 import { DayPicker } from "@/components/DayPicker";
 import { useAnalytics, type AnalyticsEventData } from "@/lib/analytics";
 import { getAlternateLang } from "@/types/lang";
-import { LiveReaderCount } from "@/components/LiveReaderCount";
 import { QuoteShare } from "@/components/QuoteShare";
 import { ShareFeatureNotice } from "@/components/ShareFeatureNotice";
+import { cacheMonthText, replaceCachedMonthText, type CachedMonthReading } from "@/lib/month-text-cache";
 
 
 // Dynamically load non-critical client overlays to eliminate main-thread blocking (TBT)
@@ -54,25 +54,22 @@ function AudioPlayer({
 }) {
   const [error, setError] = useState(false);
   const [audioAvailable, setAudioAvailable] = useState(false);
-  const [audioReady, setAudioReady] = useState(false);
+  const [audioRequested, setAudioRequested] = useState(false);
   const [speed, setSpeed] = useState(1);
   const audioRef = useRef<HTMLAudioElement>(null);
+  const playWhenReadyRef = useRef(false);
 
   const speeds = [0.5, 0.75, 0.85, 1, 1.25, 1.5, 1.75, 2];
-
-  // Keep audio off the initial critical path; attach its URL after the reader settles.
-  useEffect(() => {
-    setAudioReady(false);
-    if (!src) return;
-    const timer = window.setTimeout(() => setAudioReady(true), 2000);
-    return () => window.clearTimeout(timer);
-  }, [src]);
 
   // Handle audio loaded successfully
   const handleCanPlay = () => {
     setAudioAvailable(true);
     if (audioRef.current) {
       audioRef.current.playbackRate = speed;
+      if (playWhenReadyRef.current) {
+        playWhenReadyRef.current = false;
+        void audioRef.current.play().catch(() => {});
+      }
     }
   };
 
@@ -80,6 +77,22 @@ function AudioPlayer({
   const handleError = () => {
     setError(true);
     setAudioAvailable(false);
+    playWhenReadyRef.current = false;
+  };
+
+  const startAudio = () => {
+    const audio = audioRef.current;
+    if (!src || !audio) return;
+    setError(false);
+    setAudioRequested(true);
+    playWhenReadyRef.current = true;
+    audio.src = src;
+    audio.load();
+    void audio.play().then(() => {
+      playWhenReadyRef.current = false;
+    }).catch(() => {
+      // Playback begins in `handleCanPlay` once the requested stream is ready.
+    });
   };
 
   // Set playback speed when speed state changes
@@ -92,7 +105,7 @@ function AudioPlayer({
   // Add analytics event listeners
   useEffect(() => {
     const audio = audioRef.current;
-    if (!audio || !audioAvailable) return;
+    if (!audio) return;
 
     // Track play event
     const handlePlay = () => {
@@ -118,7 +131,7 @@ function AudioPlayer({
       audio.removeEventListener("pause", handlePause);
       audio.removeEventListener("ended", handleEnded);
     };
-  }, [track, month, day, lang, speed, audioAvailable]);
+  }, [track, month, day, lang, speed]);
 
   // Hide if no src or error
   if (!src || error) {
@@ -161,21 +174,27 @@ function AudioPlayer({
       </div>
       <audio
         ref={audioRef}
-        controls
-        preload={audioReady ? "metadata" : "none"}
-        className="w-full"
+        controls={audioRequested}
+        preload="none"
+        className={`w-full ${audioRequested ? "" : "hidden"}`}
         onCanPlay={handleCanPlay}
         onError={handleError}
       >
-        {audioReady && <source src={src} type="audio/mpeg" />}
         {lang === "ta" ? "உங்கள் உலாவி ஆடியோ எலிமன்டை ஆதரிக்கவில்லை." : "Your browser does not support the audio element."}
       </audio>
+      {!audioRequested && (
+        <Button type="button" variant="outline" className="w-full justify-center gap-2" onClick={startAudio}>
+          <Play className="h-4 w-4" aria-hidden="true" />
+          {lang === "ta" ? "ஆடியோவை இயக்கவும்" : "Play audio"}
+        </Button>
+      )}
     </div>
   );
 }
 
 interface ReaderProps {
   devotional: Devotional;
+  monthReadings: Array<{ day: number; devotional: Devotional }>;
   month: string;
   day: number;
   days: number[];
@@ -192,12 +211,46 @@ const fontSizes = [
   { label: "Maximum", value: "text-2xl" },
 ];
 
-export default function Reader({ devotional, month, day, days, lang, navigation, showFooter=true }: ReaderProps) {
+export default function Reader({ devotional, monthReadings, month, day, days, lang, navigation, showFooter=true }: ReaderProps) {
   const [fontSize, setFontSize] = useState("text-xl");
+  const [cachedReading, setCachedReading] = useState<{ key: string; reading: CachedMonthReading } | null>(null);
+  const [cacheRefreshState, setCacheRefreshState] = useState<"idle" | "refreshing" | "success" | "error">("idle");
   const pathname = usePathname();
   const { track } = useAnalytics();
   const language = lang === "ta" ? "tamil" : "english";
   const readingCompleteRef = useRef<HTMLDivElement>(null);
+  const monthCacheKey = `${CONTENT_YEAR}:${month.toLowerCase().slice(0, 3)}`;
+
+  useEffect(() => {
+    let active = true;
+    setCacheRefreshState("idle");
+    void cacheMonthText(monthCacheKey, monthReadings).then((cached) => {
+      if (!active || !cached) return;
+      const reading = cached.find((entry) => entry.day === day);
+      if (reading) setCachedReading({ key: monthCacheKey, reading });
+    });
+    return () => { active = false; };
+  }, [monthCacheKey, monthReadings, day]);
+
+  const refreshCachedMonth = async () => {
+    setCacheRefreshState("refreshing");
+    try {
+      const response = await fetch(`/api/month-text/${month.toLowerCase().slice(0, 3)}`, { cache: "no-store" });
+      if (!response.ok) throw new Error("Month refresh request failed");
+      const result = await response.json() as { readings: Array<{ day: number; devotional: Devotional }> };
+      const refreshed: CachedMonthReading[] = result.readings.map(({ day: readingDay, devotional: reading }) => ({
+        day: readingDay,
+        english: { title: reading.english.title, data: reading.english.data },
+        tamil: { title: reading.tamil.title, data: reading.tamil.data },
+      }));
+      await replaceCachedMonthText(monthCacheKey, refreshed);
+      const current = refreshed.find((reading) => reading.day === day);
+      if (current) setCachedReading({ key: monthCacheKey, reading: current });
+      setCacheRefreshState("success");
+    } catch {
+      setCacheRefreshState("error");
+    }
+  };
 
   // Track language changes when user switches via language toggle
   useEffect(() => {
@@ -264,8 +317,12 @@ export default function Reader({ devotional, month, day, days, lang, navigation,
     return text.replace(/\n{3,}/g, "\n\n");
   };
 
-  const langData =
-    language === "english" ? devotional.english : devotional.tamil;
+  const currentCachedReading = cachedReading?.key === monthCacheKey && cachedReading.reading.day === day
+    ? cachedReading.reading
+    : null;
+  const langData = currentCachedReading
+    ? currentCachedReading[language]
+    : language === "english" ? devotional.english : devotional.tamil;
   const title = langData.title;
   const content = cleanContent(langData.data);
   const openingVerse = (content.split(/\n\s*\n/)[0] ?? "")
@@ -365,10 +422,24 @@ export default function Reader({ devotional, month, day, days, lang, navigation,
           />
         </div>
 
-        <LiveReaderCount lang={lang} />
-
         {/* Audio Player */}
         <AudioPlayer src={audioSrc} lang={lang} track={track} month={month} day={day} />
+
+        <div className="mb-6 flex flex-wrap items-center gap-3">
+          <Button type="button" variant="outline" size="sm" onClick={refreshCachedMonth} disabled={cacheRefreshState === "refreshing"}>
+            <RefreshCw className={`mr-2 h-4 w-4 ${cacheRefreshState === "refreshing" ? "animate-spin" : ""}`} aria-hidden="true" />
+            {cacheRefreshState === "refreshing"
+              ? lang === "ta" ? "புதுப்பிக்கிறது…" : "Refreshing…"
+              : lang === "ta" ? "சேமித்த மாத உரையைப் புதுப்பிக்கவும்" : "Refresh cached month"}
+          </Button>
+          {cacheRefreshState !== "idle" && cacheRefreshState !== "refreshing" && (
+            <span className="text-sm text-muted-foreground" role="status" aria-live="polite">
+              {cacheRefreshState === "success"
+                ? lang === "ta" ? "மாத உரை புதுப்பிக்கப்பட்டது." : "Month text refreshed."
+                : lang === "ta" ? "புதுப்பிக்க முடியவில்லை. மீண்டும் முயற்சிக்கவும்." : "Could not refresh. Please try again."}
+            </span>
+          )}
+        </div>
 
         <QuoteShare lang={lang} title={title} articleUrl={dayPath(lang, month, day)}>
           <article
