@@ -125,8 +125,8 @@
 
   /* Language-specific fonts for proper text rendering */
   .lang-ta {
-    /* Use CDN-loaded fonts first, then Next.js font variable, then system fallbacks */
-    font-family: "Noto Sans Tamil", "Hind Madurai", var(--font-tamil),
+    /* Use installed Tamil fonts and system fallbacks without build-time downloads. */
+    font-family: "Noto Sans Tamil", "Hind Madurai",
                  "Tamil MN", "Tamil Sangam MN", "Lohit Tamil",
                  "Droid Sans Tamil", "Code2000", "Arial Unicode MS",
                  "Segoe UI Symbol", "Lucida Sans Unicode", sans-serif;
@@ -140,12 +140,12 @@
   }
 
   .lang-en {
-    font-family: var(--font-en);
+    font-family: "Noto Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
   }
 
-  /* Safety net - ensures fonts are applied globally */
+  /* Safety net for system font rendering. */
   html, body {
-    font-family: var(--font-tamil), var(--font-en), system-ui, sans-serif;
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
   }
 }
 
